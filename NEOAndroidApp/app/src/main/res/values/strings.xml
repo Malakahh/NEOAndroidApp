@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">NEOAndroidApp</string>
+    <string name="btHeadline">Select NEO device:</string>
 </resources>

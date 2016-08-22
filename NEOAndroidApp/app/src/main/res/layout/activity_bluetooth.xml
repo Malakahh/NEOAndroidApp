@@ -12,10 +12,18 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceMedium"
-        android:text="Bluetooth"
-        android:id="@+id/textView2"
+        android:text="@string/btHeadline"
+        android:textStyle="bold"
+        android:textSize="50sp"
+        android:id="@+id/btHeadline"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="92dp" />
+        android:layout_centerHorizontal="true" />
+
+    <ListView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/bluetooth_ListView"
+        android:layout_gravity="center"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/btHeadline" />
 </RelativeLayout>
