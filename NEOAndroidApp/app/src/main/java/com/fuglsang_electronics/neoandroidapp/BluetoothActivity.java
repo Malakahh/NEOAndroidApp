@@ -2,12 +2,18 @@ package com.fuglsang_electronics.neoandroidapp;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ListView;
@@ -18,15 +24,16 @@ import java.util.List;
 
 
 public class BluetoothActivity extends AppCompatActivity {
-    private final static int REQUEST_ENABLE_BT = 1;
+    private static final int REQUEST_ENABLE_BT = 1;
     private static final long SCAN_PERIOD_MS = 10000;
 
-    BluetoothAdapter mBluetoothAdapter;
+    private BluetoothAdapter mBluetoothAdapter;
     private boolean mScanning;
     private Handler mHandler;
+    private BluetoothGatt mBluetoothGatt;
 
-    BluetoothListViewAdapter mBluetoothListViewAdapter;
-    List<BluetoothDevice> mDevices = new ArrayList<>();
+    private BluetoothListViewAdapter mBluetoothListViewAdapter;
+    private List<BluetoothDevice> mDevices = new ArrayList<>();
 
     // Device scan callback.
     private BluetoothAdapter.LeScanCallback mLeScanCallback =
@@ -42,6 +49,44 @@ public class BluetoothActivity extends AppCompatActivity {
                 }
             };
 
+    String TAG = "LUL";
+    private BluetoothGattCallback mBluetoothGattCallback = new BluetoothGattCallback() {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
+
+            if (newState == BluetoothProfile.STATE_CONNECTED) {
+                Log.w(TAG, "Connected");
+
+                mBluetoothGatt.discoverServices();
+            }
+            else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                Log.w(TAG, "Disconnected");
+            }
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.w(TAG, "GATT_SUCCESS");
+
+                List<BluetoothGattService> list = gatt.getServices();
+
+                for (int i = 0; i < list.size(); i++)
+                {
+                    List<BluetoothGattCharacteristic> chars = list.get(i).getCharacteristics();
+                    Log.w(TAG, "i: " + i + " - " + chars.size() + " - " + list.get(i).getUuid());
+                    for (int k = 0; k < chars.size(); k++)
+                    {
+                        Log.w(TAG, k + " - " + chars.get(k).getUuid());
+                    }
+                }
+            }
+            else {
+                Log.w(TAG, "GATT_SUCCESS failed");
+            }
+        }
+    };
+
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_bluetooth);
@@ -54,8 +99,7 @@ public class BluetoothActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                //TODO: React properly
-                Toast.makeText(BluetoothActivity.this, "Click, yay: " + mDevices.get(position).getName(), Toast.LENGTH_SHORT).show();
+                connectBluetooth(mDevices.get(position));
             }
         });
     }
@@ -84,6 +128,11 @@ public class BluetoothActivity extends AppCompatActivity {
         }
 
         mBluetoothAdapter.enable();
+    }
+
+    private void connectBluetooth(BluetoothDevice device)
+    {
+        mBluetoothGatt = device.connectGatt(this, true, mBluetoothGattCallback);
     }
 
     private void scanBLEDevices(final boolean enable) {
