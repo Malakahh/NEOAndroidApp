@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 
 public class BluetoothActivity extends AppCompatActivity {
@@ -69,21 +70,17 @@ public class BluetoothActivity extends AppCompatActivity {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.w(TAG, "GATT_SUCCESS");
 
-                List<BluetoothGattService> list = gatt.getServices();
-
-                for (int i = 0; i < list.size(); i++)
-                {
-                    List<BluetoothGattCharacteristic> chars = list.get(i).getCharacteristics();
-                    Log.w(TAG, "i: " + i + " - " + chars.size() + " - " + list.get(i).getUuid());
-                    for (int k = 0; k < chars.size(); k++)
-                    {
-                        Log.w(TAG, k + " - " + chars.get(k).getUuid());
-                    }
-                }
+                ChargerValues.readValues(gatt);
             }
             else {
                 Log.w(TAG, "GATT_SUCCESS failed");
             }
+        }
+
+        @Override
+        public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status)
+        {
+            ChargerValues.onValueRead(characteristic, status);
         }
     };
 
