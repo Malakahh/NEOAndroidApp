@@ -26,4 +26,5 @@
         android:layout_gravity="center"
         android:layout_alignParentStart="true"
         android:layout_below="@+id/btHeadline" />
+
 </RelativeLayout>

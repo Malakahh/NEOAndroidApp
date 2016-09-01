@@ -14,6 +14,7 @@ public class ChargerModel {
 
     private static final String TAG = "NEO_ChargerModel";
 
+    private static BluetoothGatt mGatt;
     private static BluetoothGattCharacteristic reader;
     private static BluetoothGattCharacteristic writer;
 
@@ -22,7 +23,9 @@ public class ChargerModel {
         if (gatt == null)
             return;
 
-        for (BluetoothGattService service : gatt.getServices()) {
+        mGatt = gatt;
+
+        for (BluetoothGattService service : mGatt.getServices()) {
             if (service.getUuid().compareTo(UUID.fromString(PRIVATE_SERVICE_UUID)) == 0)
             {
                 for (BluetoothGattCharacteristic characteristic : service.getCharacteristics()) {
@@ -56,8 +59,9 @@ public class ChargerModel {
         Log.w(TAG, "UUID: " + characteristic.getUuid() + " char: " + s);
     }
 
-    public static void writeCharacteristic(String msg)
+    public static void writeCharacteristic(byte[] msg)
     {
-        
+        writer.setValue(msg);
+        mGatt.writeCharacteristic(writer);
     }
 }

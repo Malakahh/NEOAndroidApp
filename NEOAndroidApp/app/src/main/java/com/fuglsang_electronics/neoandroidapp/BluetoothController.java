@@ -1,6 +1,7 @@
 package com.fuglsang_electronics.neoandroidapp;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -22,6 +23,8 @@ public class BluetoothController {
     private static final int REQUEST_ENABLE_BT = 1;
     private static final long SCAN_PERIOD_MS = 10000;
     private static final String TAG = "NEO_BluetoothController";
+
+    public static boolean mConnected = false;
 
     private static Handler mHandler;
     private static BluetoothAdapter mBluetoothAdapter;
@@ -150,6 +153,7 @@ public class BluetoothController {
     public static void connectBluetooth(BluetoothDevice device, Context context)
     {
         mBluetoothGatt = device.connectGatt(context, true, mBluetoothGattCallback);
+        mConnected = true;
     }
 
 }

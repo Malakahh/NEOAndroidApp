@@ -19,14 +19,23 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         final Button btnBluetooth = (Button)findViewById(R.id.btnBluetooth);
         btnBluetooth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getBaseContext(), BluetoothActivity.class);
-                startActivity(intent);
+                byte[] msg = new byte[]{
+                        '|', 't', 'h', 'i', 's',' ','i','s',' ','a',' ','t','e','s','t','|'
+                };
+                ChargerModel.writeCharacteristic(msg);
             }
         });
+
+
+        if (!BluetoothController.mConnected) {
+            Intent intent = new Intent(getBaseContext(), BluetoothActivity.class);
+            startActivity(intent);
+        }
     }
 
 
