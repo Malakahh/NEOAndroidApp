@@ -7,10 +7,10 @@ import android.util.Log;
 
 import java.util.List;
 
-public class ChargerValues {
+public class _ChargerValues {
     public static List<BluetoothGattService> mServices;
 
-    private static String TAG = "ChargerValues";
+    private static String TAG = "_ChargerValues";
     private static boolean mReading = false;
     private static boolean mBlockReading = false;
     private static Thread mReadThread;
