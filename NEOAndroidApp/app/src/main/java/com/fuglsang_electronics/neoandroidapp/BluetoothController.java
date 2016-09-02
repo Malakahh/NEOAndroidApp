@@ -109,6 +109,7 @@ public class BluetoothController {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
             gatt.readCharacteristic(characteristic);
+            Log.w(TAG, "Changed");
         }
     };
 

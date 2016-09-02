@@ -25,7 +25,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 byte[] msg = new byte[]{
-                        '|', 't', 'h', 'i', 's',' ','i','s',' ','a',' ','t','e','s','t','|'
+                        //'|', 't', 'h', 'i', 's',' ','i','s',' ','a',' ','t','e','s','t','|'
+                        //'a', 'a', 'a', 'a','a','a','a','a','a','a','a','a','a','a'
+                        'A','A','A','A','A','A','A','A','A','A','a'
                 };
                 ChargerModel.writeCharacteristic(msg);
             }
