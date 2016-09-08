@@ -24,12 +24,15 @@ public class MainActivity extends AppCompatActivity {
         btnBluetooth.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                /*
                 byte[] msg = new byte[]{
                         //'|', 't', 'h', 'i', 's',' ','i','s',' ','a',' ','t','e','s','t','|'
                         //'a', 'a', 'a', 'a','a','a','a','a','a','a','a','a','a','a'
-                        'A','A','A','A','A','A','A','A','A','A','a'
+                        //'A','A','A','A','A','A','A','A','A','A','a'
                 };
                 ChargerModel.writeCharacteristic(msg);
+                */
+                ChargerModel.getCableResistance();
             }
         });
 

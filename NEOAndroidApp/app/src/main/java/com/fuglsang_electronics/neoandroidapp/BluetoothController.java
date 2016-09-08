@@ -103,13 +103,14 @@ public class BluetoothController {
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status)
         {
+            super.onCharacteristicRead(gatt, characteristic, status);
             ChargerModel.onCharacteristicRead(characteristic);
         }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
+            super.onCharacteristicChanged(gatt, characteristic);
             gatt.readCharacteristic(characteristic);
-            Log.w(TAG, "Changed");
         }
     };
 

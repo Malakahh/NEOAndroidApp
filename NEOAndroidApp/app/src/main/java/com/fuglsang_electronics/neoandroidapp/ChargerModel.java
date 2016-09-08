@@ -2,9 +2,11 @@ package com.fuglsang_electronics.neoandroidapp;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.util.Log;
 
+import java.util.List;
 import java.util.UUID;
 
 public class ChargerModel {
@@ -17,6 +19,18 @@ public class ChargerModel {
     private static BluetoothGatt mGatt;
     private static BluetoothGattCharacteristic reader;
     private static BluetoothGattCharacteristic writer;
+
+    private static final byte START_BYTE = '|';
+    private static final byte END_BYTE = '|';
+
+    private static final byte writeReg = (byte)0x80;
+    private static final byte readReg = (byte)0x00;
+    private static final byte writeEEprom = (byte)0x40;
+    private static final byte readEEprom = (byte)0x00;
+    private static final byte c_cmd_ee_data_high = (byte)0x05;
+    private static final byte c_cmd_ee_data_low = (byte)0x06;
+    private static final byte c_cmd_ee_addr_high = (byte)0x07;
+    private static final byte c_cmd_ee_addr_low = (byte)0x08;
 
     public static void collectCharacteristics(BluetoothGatt gatt) {
         //Escape
@@ -40,6 +54,14 @@ public class ChargerModel {
                 break;
             }
         }
+
+        List<BluetoothGattDescriptor> list = reader.getDescriptors();
+
+        BluetoothGattDescriptor descriptor = list.get(0);
+
+        mGatt.setCharacteristicNotification(reader, true);
+        descriptor.setValue(BluetoothGattDescriptor.ENABLE_INDICATION_VALUE);
+        mGatt.writeDescriptor(descriptor);
     }
 
     public static void onCharacteristicRead(BluetoothGattCharacteristic characteristic)
@@ -63,5 +85,20 @@ public class ChargerModel {
     {
         writer.setValue(msg);
         mGatt.writeCharacteristic(writer);
+    }
+
+    public static void getCableResistance()
+    {
+        byte[] msg = new byte[]{
+                START_BYTE,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg,
+                0x01,
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg,
+                END_BYTE
+        };
+        ChargerModel.writeCharacteristic(msg);
     }
 }
