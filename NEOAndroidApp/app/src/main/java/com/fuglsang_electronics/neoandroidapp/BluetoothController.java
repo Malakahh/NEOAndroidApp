@@ -20,6 +20,10 @@ import java.util.List;
 import java.util.Vector;
 
 public class BluetoothController {
+    interface ConnectionCallback {
+        void onConnectionEstablished();
+    }
+
     private static final int REQUEST_ENABLE_BT = 1;
     private static final long SCAN_PERIOD_MS = 10000;
     private static final String TAG = "NEO_BluetoothController";
@@ -33,6 +37,8 @@ public class BluetoothController {
 
     public static List<BluetoothDevice> mDevices = new ArrayList<>();
     private static Vector _leScanEventListeners;
+
+    private static ConnectionCallback mConnectionCallback;
 
     public interface onLeScan {
         void onDeviceDiscovered(final BluetoothDevice device);
@@ -94,6 +100,7 @@ public class BluetoothController {
 
                 //_ChargerValues.readValues(gatt);
                 ChargerModel.collectCharacteristics(gatt);
+                mConnectionCallback.onConnectionEstablished();
             }
             else {
                 Log.w(TAG, "GATT_SUCCESS failed");
@@ -152,8 +159,9 @@ public class BluetoothController {
         }
     }
 
-    public static void connectBluetooth(BluetoothDevice device, Context context)
+    public static void connectBluetooth(BluetoothDevice device, Context context, ConnectionCallback callback)
     {
+        mConnectionCallback = callback;
         mBluetoothGatt = device.connectGatt(context, true, mBluetoothGattCallback);
         mConnected = true;
     }

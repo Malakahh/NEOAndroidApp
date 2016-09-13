@@ -4,6 +4,8 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -11,10 +13,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class ChargerModel {
+    public enum LEDStatus {
+        ON, OFF, SLOW_BLINK, FAST_BLINK
+    }
+
     interface Callback {
         void Response(byte[] msg);
+    }
+
+    interface LEDStatusCallback {
+        void Response(LEDStatus green, LEDStatus yellow, LEDStatus red);
     }
 
     private static final String PRIVATE_SERVICE_UUID = "f4f232be-5a53-11e6-8b77-86f30ca893d3";
@@ -38,9 +49,10 @@ public class ChargerModel {
     private static final byte c_cmd_ee_data_low = (byte)0x06;
     private static final byte c_cmd_ee_addr_high = (byte)0x07;
     private static final byte c_cmd_ee_addr_low = (byte)0x08;
+    private static final byte c_led_mode = (byte)0x1E;
 
-    private static final LinkedList<Byte> readBuffer = new LinkedList<>();
-    private static final LinkedList<CallbackItem> callbacks = new LinkedList<>();
+    private static final ConcurrentLinkedQueue<Byte> readBuffer = new ConcurrentLinkedQueue<>();
+    private static final ConcurrentLinkedQueue<CallbackItem> callbacks = new ConcurrentLinkedQueue<>();
 
     private static Thread callbackManager;
 
@@ -96,6 +108,7 @@ public class ChargerModel {
         mGatt.writeCharacteristic(writer);
     }
 
+    /*
     public static void getCableResistance()
     {
         byte[] msg = new byte[]{
@@ -117,6 +130,7 @@ public class ChargerModel {
             }
         });
     }
+*/
 
     private static void WaitForResponse(int bytesToWait, Callback callback)
     {
@@ -131,7 +145,7 @@ public class ChargerModel {
                     {
                         while (!callbacks.isEmpty())
                         {
-                            CallbackItem callbackItem = callbacks.removeFirst();
+                            CallbackItem callbackItem = callbacks.poll();
 
                             byte[] msg = new byte[callbackItem.mBytesToRead];
                             int bytesReadCount = 0;
@@ -140,7 +154,7 @@ public class ChargerModel {
                             {
                                 if (!readBuffer.isEmpty())
                                 {
-                                    msg[bytesReadCount++] = readBuffer.removeFirst();
+                                    msg[bytesReadCount++] = readBuffer.poll().byteValue();
                                 }
                             }
 
@@ -151,5 +165,62 @@ public class ChargerModel {
             };
             callbackManager.start();
         }
+    }
+
+    public static void getLEDStatus(final LEDStatusCallback callback)
+    {
+        byte[] msg = new byte[] {
+                START_BYTE,
+                c_led_mode | readReg,
+                END_BYTE
+        };
+
+        ChargerModel.writeCharacteristic(msg);
+        WaitForResponse(1, new Callback() {
+            @Override
+            public void Response(byte[] msg) {
+                Log.w(TAG, "msg: " + msg[0]);
+
+                byte bitmask = msg[0];
+                LEDStatus green = LEDStatus.OFF;
+                LEDStatus yellow = LEDStatus.OFF;
+                LEDStatus red = LEDStatus.OFF;
+
+                if (((bitmask >> 0) & 1) == 1) {
+                    green = LEDStatus.ON;
+                }
+                else if (((bitmask >> 1) & 1) == 1) {
+                    green = LEDStatus.SLOW_BLINK;
+                }
+
+                if (((bitmask >> 2) & 1) == 1) {
+                    yellow = LEDStatus.ON;
+                }
+                else if (((bitmask >> 3) & 1) == 1) {
+                    yellow = LEDStatus.SLOW_BLINK;
+                }
+                else if (((bitmask >> 4) & 1) == 1) {
+                    yellow = LEDStatus.FAST_BLINK;
+                }
+
+                if (((bitmask >> 5) & 1) == 1) {
+                    red = LEDStatus.ON;
+                }
+                else if (((bitmask >> 6) & 1) == 1) {
+                    red = LEDStatus.SLOW_BLINK;
+                }
+
+                final LEDStatus g = green;
+                final LEDStatus y = yellow;
+                final LEDStatus r = red;
+
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.Response(g, y, r);
+                    }
+                });
+            }
+        });
     }
 }
