@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class ChargerModel {
     public enum LEDStatus {
@@ -21,11 +22,15 @@ public class ChargerModel {
     }
 
     interface Callback {
-        void Response(byte[] msg);
+        void Response(final byte[] msg);
     }
 
     interface LEDStatusCallback {
         void Response(LEDStatus green, LEDStatus yellow, LEDStatus red);
+    }
+
+    interface ProgrammeNameCallback {
+        void Response(String programmeName);
     }
 
     private static final String PRIVATE_SERVICE_UUID = "f4f232be-5a53-11e6-8b77-86f30ca893d3";
@@ -41,6 +46,7 @@ public class ChargerModel {
     private static final byte START_BYTE = '|';
     private static final byte END_BYTE = '|';
 
+    //Register Layout
     private static final byte writeReg = (byte)0x80;
     private static final byte readReg = (byte)0x00;
     private static final byte writeEEprom = (byte)0x40;
@@ -51,8 +57,14 @@ public class ChargerModel {
     private static final byte c_cmd_ee_addr_low = (byte)0x08;
     private static final byte c_led_mode = (byte)0x1E;
 
-    private static final ConcurrentLinkedQueue<Byte> readBuffer = new ConcurrentLinkedQueue<>();
-    private static final ConcurrentLinkedQueue<CallbackItem> callbacks = new ConcurrentLinkedQueue<>();
+    //eeprom layout
+    private static final byte ee_program_name_1_2 = (byte)0x1E;
+    private static final byte ee_program_name_3_4 = (byte)0x1F;
+    private static final byte ee_program_name_5_6 = (byte)0x20;
+    private static final byte ee_program_name_7_8 = (byte)0x21;
+
+    private static final LinkedBlockingQueue<Byte> readBuffer = new LinkedBlockingQueue<>();
+    private static final LinkedBlockingQueue<CallbackItem> callbacks = new LinkedBlockingQueue<>();
 
     private static Thread callbackManager;
 
@@ -132,9 +144,9 @@ public class ChargerModel {
     }
 */
 
-    private static void WaitForResponse(int bytesToWait, Callback callback)
+    private static void WaitForResponse(byte[] query, int bytesToWait, Callback callback)
     {
-        callbacks.add(new CallbackItem(bytesToWait, callback));
+        callbacks.add(new CallbackItem(query, bytesToWait, callback));
 
         if (callbackManager == null || !callbackManager.isAlive())
         {
@@ -143,10 +155,11 @@ public class ChargerModel {
                 public void run() {
                     while (true)
                     {
-                        while (!callbacks.isEmpty())
+                        if (!callbacks.isEmpty())
                         {
                             CallbackItem callbackItem = callbacks.poll();
 
+                            ChargerModel.writeCharacteristic(callbackItem.mQuery);
                             byte[] msg = new byte[callbackItem.mBytesToRead];
                             int bytesReadCount = 0;
 
@@ -175,8 +188,7 @@ public class ChargerModel {
                 END_BYTE
         };
 
-        ChargerModel.writeCharacteristic(msg);
-        WaitForResponse(1, new Callback() {
+        WaitForResponse(msg, 1, new Callback() {
             @Override
             public void Response(byte[] msg) {
                 Log.w(TAG, "msg: " + msg[0]);
@@ -222,5 +234,146 @@ public class ChargerModel {
                 });
             }
         });
+    }
+
+    public static void getProgrammeName(final ProgrammeNameCallback callback)
+    {
+        final byte[] response = new byte[8];
+
+        //read ee_program_name_1_2
+        byte[] msg_1_2 = new byte[] {
+                START_BYTE,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg,
+                ee_program_name_1_2,
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg,
+                END_BYTE
+        };
+
+        //read ee_program_name_3_4
+        byte[] msg_3_4 = new byte[] {
+                START_BYTE,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg,
+                ee_program_name_3_4,
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg,
+                END_BYTE
+        };
+
+        //read ee_program_name_5_6
+        byte[] msg_5_6 = new byte[] {
+                START_BYTE,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg,
+                ee_program_name_5_6,
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg,
+                END_BYTE
+        };
+
+        //read ee_program_name_7_8
+        byte[] msg_7_8 = new byte[] {
+                START_BYTE,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg,
+                ee_program_name_7_8,
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg,
+                END_BYTE
+        };
+
+
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException ex) {}
+
+//        ChargerModel.writeCharacteristic(msg_1_2);
+        WaitForResponse(msg_1_2, 2, new Callback() {
+            @Override
+            public void Response(byte[] msg) {
+                Log.w(TAG, "msg_1_2 - " + msg[0] + " - " + msg[1]);
+                response[0] = msg[0];
+                response[1] = msg[1];
+            }
+        });
+//
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException ex) {}
+
+//        ChargerModel.writeCharacteristic(msg_3_4);
+        WaitForResponse(msg_3_4, 2, new Callback() {
+            @Override
+            public void Response(byte[] msg) {
+                Log.w(TAG, "msg_3_4 - " + msg[0] + " - " + msg[1]);
+                response[2] = msg[0];
+                response[3] = msg[1];
+            }
+        });
+//
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException ex) {}
+
+//        ChargerModel.writeCharacteristic(msg_5_6);
+        WaitForResponse(msg_5_6, 2, new Callback() {
+            @Override
+            public void Response(byte[] msg) {
+                Log.w(TAG, "msg_5_6 - " + msg[0] + " - " + msg[1]);
+                response[4] = msg[0];
+                response[5] = msg[1];
+            }
+        });
+//
+//        try {
+//            Thread.sleep(1000);
+//        } catch (InterruptedException ex) {}
+
+//        ChargerModel.writeCharacteristic(msg_7_8);
+        WaitForResponse(msg_7_8, 2, new Callback() {
+            @Override
+            public void Response(byte[] msg) {
+                Log.w(TAG, "msg_7_8 - " + msg[0] + " - " + msg[1]);
+                response[6] = msg[0];
+                response[7] = msg[1];
+
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.Response(new String(response));
+                    }
+                });
+            }
+        });
+//
+//        callback.Response(new String(response));
+
+//        WaitForResponse(8, new Callback() {
+//            @Override
+//            public void Response(final byte[] msg) {
+//                new Handler(Looper.getMainLooper()).post(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        Log.w(TAG, " 0: " + msg[0] +
+//                                " 1: " + msg[1] +
+//                                " 2: " + msg[2] +
+//                                " 3: " + msg[3] +
+//                                " 4: " + msg[4] +
+//                                " 5: " + msg[5] +
+//                                " 6: " + msg[6] +
+//                                " 7: " + msg[7]);
+//                        callback.Response(new String(msg));
+//                    }
+//                });
+//            }
+//        });
+
+
     }
 }

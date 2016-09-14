@@ -7,10 +7,13 @@ import android.graphics.drawable.AnimationDrawable;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.List;
@@ -20,11 +23,15 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "NEO_MainActivity";
 
-    private AnimationDrawable mAnimBattery;
+    private ImageView mImgViewPowercharge;
+
+    private ImageView mImgViewBattery;
     private ImageView mImgViewLEDGreen;
     private ImageView mImgViewLEDYellow;
     private ImageView mImgViewLEDRed;
+    private TextView mTxtViewProgrammeName;
 
     private final long mUpdateLEDDelayMS = 10000;
 
@@ -37,18 +44,41 @@ public class MainActivity extends AppCompatActivity {
     };
     private boolean mUpdateLEDRepeaterStarted = false;
 
+    private final long mLongTouchTime = 7000;
+    private Runnable mOnPowerchargeLongTouch = new Runnable() {
+        @Override
+        public void run() {
+            Log.w(TAG, "Long click");
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ImageView imgBattery = (ImageView) findViewById(R.id.imgViewBattery);
-        imgBattery.setBackgroundResource(R.drawable.battery);
-        mAnimBattery = (AnimationDrawable)imgBattery.getBackground();
+        mImgViewPowercharge = (ImageView) findViewById(R.id.logoPowercharge);
+        final Handler longclickPowerchargeHandler = new Handler();
+        mImgViewPowercharge.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        longclickPowerchargeHandler.postDelayed(mOnPowerchargeLongTouch, mLongTouchTime);
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        longclickPowerchargeHandler.removeCallbacks(mOnPowerchargeLongTouch);
+                        break;
+                }
+                return true;
+            }
+        });
 
+        mImgViewBattery = (ImageView) findViewById(R.id.imgViewBattery);
         mImgViewLEDGreen = (ImageView) findViewById(R.id.imgViewLEDGreen);
         mImgViewLEDYellow = (ImageView) findViewById(R.id.imgViewLEDYellow);
         mImgViewLEDRed = (ImageView) findViewById(R.id.imgViewLEDRed);
+        mTxtViewProgrammeName = (TextView) findViewById(R.id.txtViewProgrammeName);
 
         if (!BluetoothController.mConnected) {
             Intent intent = new Intent(getBaseContext(), BluetoothActivity.class);
@@ -63,8 +93,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged (boolean hasFocus)
     {
-        mAnimBattery.start();
-
         if (!mUpdateLEDRepeaterStarted)
         {
             mUpdateLEDRepeaterStarted = true;
@@ -75,6 +103,14 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        ChargerModel.getProgrammeName(new ChargerModel.ProgrammeNameCallback() {
+            @Override
+            public void Response(String programmeName) {
+                mTxtViewProgrammeName.setText(programmeName);
+            }
+        });
+
     }
 
     private void updateLED()
@@ -95,17 +131,25 @@ public class MainActivity extends AppCompatActivity {
 
                 if (yellow == ChargerModel.LEDStatus.ON) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow);
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery4);
                 }
                 else if (yellow == ChargerModel.LEDStatus.SLOW_BLINK) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow_blink_slow);
                     ((AnimationDrawable)mImgViewLEDYellow.getBackground()).start();
+
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery);
+                    ((AnimationDrawable)mImgViewBattery.getBackground()).start();
                 }
                 else if (yellow == ChargerModel.LEDStatus.FAST_BLINK) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow_blink_fast);
                     ((AnimationDrawable)mImgViewLEDYellow.getBackground()).start();
+
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery);
+                    ((AnimationDrawable)mImgViewBattery.getBackground()).start();
                 }
                 else if (yellow == ChargerModel.LEDStatus.OFF) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_off);
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery0);
                 }
 
                 if (red == ChargerModel.LEDStatus.ON) {

@@ -13,14 +13,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:noHistory="true">
-        <activity android:name=".MainActivity">
+        <activity android:name=".MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".BluetoothActivity"></activity>
+        <activity android:name=".BluetoothActivity"
+            android:screenOrientation="portrait"></activity>
     </application>
     <uses-permission android:name="android.permission.BLUETOOTH"/>
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"/>

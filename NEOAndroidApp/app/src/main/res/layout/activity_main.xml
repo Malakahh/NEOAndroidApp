@@ -4,6 +4,7 @@
     android:layout_height="match_parent"
     xmlns:tools="http://schemas.android.com/tools"
     android:fillViewport="true"
+    android:keepScreenOn="true"
     tools:context="com.fuglsang_electronics.neoandroidapp.MainActivity">
     <LinearLayout
         android:orientation="vertical"
@@ -20,6 +21,7 @@
             android:layout_marginBottom="50dp"
             android:gravity="center_horizontal|center">
             <ImageView
+                android:id="@+id/logoPowercharge"
                 android:layout_width="0dp"
                 android:layout_height="40dp"
                 android:layout_weight="8"
@@ -35,7 +37,7 @@
                 android:textSize="25sp"
                 android:textColor="#000000"
                 android:textStyle="italic"
-                android:text="NEO"/>
+                android:text="@string/app_name_short"/>
         </LinearLayout>
         <ImageView
             android:layout_width="200dp"
@@ -137,16 +139,17 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Programme name:"
+                android:text="@string/main_ProgrammeName"
                 android:textSize="20sp"
                 android:textAlignment="center"/>
             <TextView
+                android:id="@+id/txtViewProgrammeName"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAlignment="center"
                 android:textSize="28sp"
                 android:textStyle="italic"
-                android:text="EX500_60"/>
+                android:text="PlaceholderName"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"

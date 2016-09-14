@@ -1,4 +1,8 @@
 <resources>
-    <string name="app_name">NEOAndroidApp</string>
-    <string name="btHeadline">Select NEO device:</string>
+    <string name="app_name">NEO Android App</string>
+    <string name="app_name_short">NEO</string>
+    <string name="bt_Headline">Select NEO charger:</string>
+    <string name="main_ProgrammeName">Programme Name:</string>
+    <string name="bt_connectingSpinnerHeadline">Please wait</string>
+    <string name="bt_connectingSpinnerMessage">Connecting to NEO charger</string>
 </resources>
