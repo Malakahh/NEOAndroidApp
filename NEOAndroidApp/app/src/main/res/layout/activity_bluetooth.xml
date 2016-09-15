@@ -11,14 +11,15 @@
     tools:context="com.fuglsang_electronics.neoandroidapp.BluetoothActivity">
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/bt_Headline"
         android:textStyle="bold"
         android:textSize="35sp"
         android:id="@+id/btHeadline"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:textAlignment="center"/>
 
     <ListView
         android:layout_width="wrap_content"
