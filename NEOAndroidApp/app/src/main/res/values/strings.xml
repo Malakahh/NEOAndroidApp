@@ -2,6 +2,12 @@
     <!-- Common -->
     <string name="app_name">NEO Android App</string>
     <string name="app_name_short">NEO</string>
+    <string name="btnOK">OK</string>
+    <string name="btnCancel">Cancel</string>
+
+    <!-- Units -->
+    <string name="unitsVoltage">V</string>
+    <string name="unitsCurrent">A</string>
 
     <!-- activity bluetooth -->
     <string name="bt_Headline">Select NEO charger:</string>
@@ -15,6 +21,8 @@
     <string name="service_Headline">Service Menu</string>
     <string name="service_errorHeadline">Error status:</string>
     <string name="service_error_noError">No errors</string>
+    <string name="service_error_misc">Miscellaneous error</string>
+    <string name="service_error_reversePolarity">Reverse polarity</string>
     <string name="service_voltage">Voltage:</string>
     <string name="service_Current">Current:</string>
     <string name="service_ProgramStep">Program Step:</string>
@@ -25,4 +33,9 @@
     <string name="service_BtnResetCounters">Reset Counters</string>
     <string name="service_BtnReadLog">Read Log</string>
     <string name="service_BtnWriteProgram">Write Program</string>
+
+    <!-- password dialog -->
+    <string name="passwordDialog_Headline">Authorization required</string>
+    <string name="passwordDialog_Hint">Enter service password</string>
+    <string name="passwordDialog_HintWrongPassword">Wrong service password</string>
 </resources>

@@ -45,6 +45,7 @@ public class BluetoothActivity extends AppCompatActivity {
                     @Override
                     public void onConnectionEstablished() {
                         progress.dismiss();
+                        finish();
 
                         Intent intent = new Intent(getBaseContext(), MainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);

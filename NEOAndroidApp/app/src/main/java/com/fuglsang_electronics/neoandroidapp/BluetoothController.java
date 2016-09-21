@@ -35,7 +35,7 @@ public class BluetoothController {
     private static BluetoothGatt mBluetoothGatt;
     private static boolean mScanning;
 
-    public static List<BluetoothDevice> mDevices = new ArrayList<>();
+    public static List<BluetoothDevice> mDevices = new ArrayList<BluetoothDevice>();
     private static Vector _leScanEventListeners;
 
     private static ConnectionCallback mConnectionCallback;
