@@ -39,6 +39,7 @@ public class BluetoothActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(final AdapterView<?> parent, View view, int position, long id) {
+                BluetoothController.scanBLEDevices(false);
                 progress.show();
 
                 BluetoothController.connectBluetooth(BluetoothController.mDevices.get(position), context, new BluetoothController.ConnectionCallback() {

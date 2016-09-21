@@ -45,9 +45,9 @@ public class MainActivity extends AppCompatActivity {
     private final long mUpdateLEDDelayMS = 10000;
     private Timer mTimer = new Timer();
 
-    private static final String serviceMenuPassword = "okay";
+    private static final String serviceMenuPassword = "";
 
-    private final long mLongTouchTime = 7000;
+    private final long mLongTouchTime = 1000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

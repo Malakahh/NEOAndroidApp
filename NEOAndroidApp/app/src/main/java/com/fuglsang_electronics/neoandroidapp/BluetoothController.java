@@ -141,15 +141,6 @@ public class BluetoothController {
 
     public static void scanBLEDevices(final boolean enable) {
         if (enable) {
-            // Stops scanning after a pre-defined scan period.
-            mHandler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    mScanning = false;
-                    mBluetoothAdapter.stopLeScan(mLeScanCallback);
-                }
-            }, SCAN_PERIOD_MS);
-
             mScanning = true;
 
             mBluetoothAdapter.startLeScan(mLeScanCallback);
