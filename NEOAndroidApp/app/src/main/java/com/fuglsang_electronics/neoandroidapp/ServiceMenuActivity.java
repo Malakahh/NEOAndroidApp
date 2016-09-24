@@ -60,8 +60,8 @@ public class ServiceMenuActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Log.w(TAG, "btnServiceResetCounters click");
 
-                ChargerModel.ClearLogCounters();
-                getLogCounters();
+//                ChargerModel.ClearLogCounters();
+//                getLogCounters();
             }
         });
 
@@ -109,6 +109,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
     }
 
     private void getLogCounters() {
+        Log.w(TAG, "getLogCounters");
         ChargerModel.getLogCounterCharges(new ChargerModel.LogCounterCallback() {
             @Override
             public void Response(int count) {
@@ -187,22 +188,20 @@ public class ServiceMenuActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult (int requestCode, int resultCode, Intent data) {
 
+        if (data != null) {
             Log.w(TAG, "RESULT!! " + data.getData());
 
-//            if (requestCode == READ_LOG) {
-//                try {
-//
-//                    File f = new File(data.getData() + ".log");
-//                    f.createNewFile();
-//                    FileOutputStream fos = new FileOutputStream(f);
-//                    PrintWriter writer = new PrintWriter(fos);
-//                    writer.write("This is a dummy");
-//                    writer.flush();
-//                    writer.close();
-//                    fos.close();
-//                } catch (IOException ex) {
-//                    Log.e(TAG, "IOException: " + ex.toString());
-//                }
-//            }
+        }
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        mTimer.cancel();
+        ChargerModel.clearBuffer();
+
+        Intent main = new Intent(ServiceMenuActivity.this, MainActivity.class);
+        startActivity(main);
+        finish();
     }
 }

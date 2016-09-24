@@ -55,7 +55,7 @@ public class ChargerModel {
     private static final byte writeReg = (byte)0x80;
     private static final byte readReg = (byte)0x00;
     private static final byte writeEEprom = (byte)0x40;
-    private static final byte readEEprom = (byte)0x00;
+    //private static final byte readEEprom = (byte)0x00;
     private static final byte START_BYTE = '|';
     private static final byte END_BYTE = '|';
 
@@ -70,7 +70,7 @@ public class ChargerModel {
     private static final byte c_charge_curr_meas_high = (byte)0x15;
     private static final byte c_charge_pstep_number = (byte)0x18;
     private static final byte c_led_mode = (byte)0x1E;
-    private static final byte c_log_clear_control = (byte)0x21;
+    //private static final byte c_log_clear_control = (byte)0x21;
 
     //eeprom layout
     private static final byte ee_log_cnt_charg = (byte)0x1A;
@@ -164,7 +164,7 @@ public class ChargerModel {
 
     private static boolean running = false;
     private static void PostResponse() {
-        if (running && !callbacks.isEmpty() && readBuffer.size() >= callbacks.peek().mBytesToRead) {
+        if (running && !callbacks.isEmpty() && callbacks.peek().mBytesToRead > 0 && readBuffer.size() >= callbacks.peek().mBytesToRead) {
             CallbackItem callbackItem = callbacks.poll();
             byte[] msg = new byte[callbackItem.mBytesToRead];
 
@@ -182,14 +182,37 @@ public class ChargerModel {
             callbackItem.mCallback.Response(msg);
             running = false;
         }
-        else if (running && !callbacks.isEmpty() && callbacks.peek().mBytesToRead == 0) {
-            callbacks.poll();
-            running = false;
-        }
 
+//        else if (running && !callbacks.isEmpty() && callbacks.peek().mBytesToRead == 0) {
+//            callbacks.poll();
+//            running = false;
+//            Log.w(TAG, "Query");
+//        }
+
+        NextCommand();
+    }
+
+    private static void NextCommand()
+    {
         if (!running && !callbacks.isEmpty()) {
             running = true;
-            ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
+
+            if (callbacks.peek().mBytesToRead > 0) {
+                ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
+            }
+            else {
+                Log.w(TAG, "Query");
+                while (!callbacks.isEmpty() && callbacks.peek().mBytesToRead == 0) {
+                    ChargerModel.writeCharacteristic(callbacks.poll().mQuery);
+                }
+
+                if (!callbacks.isEmpty()) {
+                    ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
+                }
+                else {
+                    running = false;
+                }
+            }
         }
     }
 
@@ -197,11 +220,7 @@ public class ChargerModel {
     {
         callbacks.add(new CallbackItem(query, bytesToWait, callback));
 
-        if (!running && !callbacks.isEmpty())
-        {
-            running = true;
-            ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
-        }
+        NextCommand();
     }
 
     private static void SendQuery(byte[] query) {
@@ -558,13 +577,47 @@ public class ChargerModel {
 
     public static void ClearLogCounters()
     {
-        byte[] msg = new byte[] {
+        byte[] msg_charge = new byte[] {
                 START_BYTE,
-                c_log_clear_control | writeReg,
-                0x07,
+                c_cmd_ee_data_high | writeReg,
+                0x00,
+                c_cmd_ee_data_low | writeReg,
+                0x00,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_log_cnt_charg,
                 END_BYTE
         };
 
-        SendQuery(msg);
+        byte[] msg_error = new byte[] {
+                START_BYTE,
+                c_cmd_ee_data_high | writeReg,
+                0x00,
+                c_cmd_ee_data_low | writeReg,
+                0x00,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_log_cnt_error,
+                END_BYTE
+        };
+
+        byte[] msg_depthDiscarges = new byte[] {
+                START_BYTE,
+                c_cmd_ee_data_high | writeReg,
+                0x00,
+                c_cmd_ee_data_low | writeReg,
+                0x00,
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_log_cnt_depth,
+                END_BYTE
+        };
+
+        SendQuery(msg_depthDiscarges);
+        SendQuery(msg_charge);
+        SendQuery(msg_error);
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/animBatteryCharging0"
+    android:oneshot="false">
+    <item android:drawable="@drawable/battery0" android:duration="750" />
+    <item android:drawable="@drawable/battery1" android:duration="750" />
+    <item android:drawable="@drawable/battery2" android:duration="750" />
+    <item android:drawable="@drawable/battery3" android:duration="750" />
+    <item android:drawable="@drawable/battery4" android:duration="750" />
+    <item android:drawable="@drawable/battery5" android:duration="750" />
+    <item android:drawable="@drawable/battery6" android:duration="750" />
+    <item android:drawable="@drawable/battery7" android:duration="750" />
+    <item android:drawable="@drawable/battery8" android:duration="750" />
+</animation-list>

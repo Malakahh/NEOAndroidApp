@@ -1,12 +1,5 @@
 package com.fuglsang_electronics.neoandroidapp;
 
-import android.app.Activity;
-import android.app.Dialog;
-import android.app.DialogFragment;
-import android.app.ProgressDialog;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.AnimationDrawable;
@@ -14,22 +7,15 @@ import android.os.Handler;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = "NEO_MainActivity";
@@ -45,9 +31,9 @@ public class MainActivity extends AppCompatActivity {
     private final long mUpdateLEDDelayMS = 10000;
     private Timer mTimer = new Timer();
 
-    private static final String serviceMenuPassword = "";
+    private static final String serviceMenuPassword = "1234";
 
-    private final long mLongTouchTime = 1000;
+    private final long mLongTouchTime = 3000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -176,20 +162,20 @@ public class MainActivity extends AppCompatActivity {
 
                 if (yellow == ChargerModel.LEDStatus.ON) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow);
-                    mImgViewBattery.setBackgroundResource(R.drawable.battery4);
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery8);
                 }
                 else if (yellow == ChargerModel.LEDStatus.SLOW_BLINK) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow_blink_slow);
                     ((AnimationDrawable)mImgViewLEDYellow.getBackground()).start();
 
-                    mImgViewBattery.setBackgroundResource(R.drawable.battery);
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery_charging_0);
                     ((AnimationDrawable)mImgViewBattery.getBackground()).start();
                 }
                 else if (yellow == ChargerModel.LEDStatus.FAST_BLINK) {
                     mImgViewLEDYellow.setBackgroundResource(R.drawable.led_yellow_blink_fast);
                     ((AnimationDrawable)mImgViewLEDYellow.getBackground()).start();
 
-                    mImgViewBattery.setBackgroundResource(R.drawable.battery);
+                    mImgViewBattery.setBackgroundResource(R.drawable.battery_charging_1);
                     ((AnimationDrawable)mImgViewBattery.getBackground()).start();
                 }
                 else if (yellow == ChargerModel.LEDStatus.OFF) {
@@ -210,5 +196,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        mTimer.cancel();
+        ChargerModel.clearBuffer();
+        System.exit(0);
     }
 }

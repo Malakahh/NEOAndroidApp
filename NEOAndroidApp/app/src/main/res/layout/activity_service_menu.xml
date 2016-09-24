@@ -13,7 +13,8 @@
         android:paddingTop="@dimen/content_padding_top"
         android:paddingStart="@dimen/content_padding_left"
         android:paddingEnd="@dimen/content_padding_right"
-        android:paddingBottom="@dimen/content_padding_bottom">
+        android:paddingBottom="@dimen/content_padding_bottom"
+        android:background="#DCEDE8"e>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -48,7 +49,7 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -69,7 +70,7 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -83,6 +84,7 @@
                     android:textSize="@dimen/content_tableHeader"
                     android:gravity="center"
                     android:text="@string/service_ProgramStep"/>
+
                 <TextView
                     android:id="@+id/txtViewServiceProgramStep"
                     android:layout_width="match_parent"
@@ -90,24 +92,55 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
         </LinearLayout>
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:text="@string/service_errorHeadline"
-            android:textSize="@dimen/menu_headline"/>
-        <TextView
-            android:id="@+id/txtViewServiceError"
+            android:orientation="vertical"
+            android:layout_marginBottom="@dimen/content_spacing">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="center"
+                android:text="@string/service_AmpereHour"
+                android:textSize="@dimen/menu_headline"/>
+            <TextView
+                android:id="@+id/txtViewServiceAmpereHour"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/content_text"
+                android:textStyle="italic"
+                android:textAlignment="center"
+                android:text="37Ah"/>
+        </LinearLayout>
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/content_spacing"
-            android:textSize="@dimen/content_text"
-            android:textStyle="italic"
-            android:textAlignment="center"
-            android:text="@string/service_error_noError"/>
+            android:orientation="horizontal">
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAlignment="center"
+                    android:text="@string/service_errorHeadline"
+                    android:textSize="@dimen/menu_headline"/>
+                <TextView
+                    android:id="@+id/txtViewServiceError"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/content_spacing"
+                    android:textSize="@dimen/content_text"
+                    android:textStyle="italic"
+                    android:textAlignment="center"
+                    android:text=""/>
+            </LinearLayout>
+        </LinearLayout>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -117,7 +150,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="100dp"
-            android:layout_marginBottom="@dimen/content_spacing"
+            android:layout_marginBottom="10dp"
             android:orientation="horizontal">
             <LinearLayout
                 android:layout_width="0dp"
@@ -131,6 +164,7 @@
                     android:textSize="@dimen/content_tableHeader"
                     android:gravity="center"
                     android:text="@string/service_LogCounters_Charges"/>
+
                 <TextView
                     android:id="@+id/txtViewServiceLogCountersCharges"
                     android:layout_width="match_parent"
@@ -138,7 +172,7 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -159,7 +193,7 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
             <LinearLayout
                 android:layout_width="0dp"
@@ -180,13 +214,12 @@
                     android:layout_weight="1"
                     android:textSize="@dimen/content_text"
                     android:gravity="center"
-                    android:text="0"/>
+                    android:text=""/>
             </LinearLayout>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="100dp"
-            android:layout_marginBottom="15dp">
+            android:layout_height="100dp">
             <Button
                 android:id="@+id/btnServiceResetCounters"
                 android:layout_width="0dp"
@@ -206,13 +239,6 @@
                 android:layout_weight="1"
                 android:text="@string/service_BtnWriteProgram"/>
         </LinearLayout>
-        <ProgressBar
-            android:id="@+id/progressBarService"
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:progressDrawable="@android:drawable/progress_horizontal"
-            android:indeterminate="false"
-            android:indeterminateOnly="false" />
     </LinearLayout>
 </ScrollView>
 

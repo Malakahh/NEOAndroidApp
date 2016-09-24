@@ -8,6 +8,7 @@
     <!-- Units -->
     <string name="unitsVoltage">V</string>
     <string name="unitsCurrent">A</string>
+    <string name="unitsAmpereHour">Ah</string>
 
     <!-- activity bluetooth -->
     <string name="bt_Headline">Select NEO charger:</string>
@@ -23,6 +24,7 @@
     <string name="service_error_noError">No errors</string>
     <string name="service_error_misc">Miscellaneous error</string>
     <string name="service_error_reversePolarity">Reverse polarity</string>
+    <string name="service_AmpereHour">Ampere-Hour:</string>
     <string name="service_voltage">Voltage:</string>
     <string name="service_Current">Current:</string>
     <string name="service_ProgramStep">Program Step:</string>
