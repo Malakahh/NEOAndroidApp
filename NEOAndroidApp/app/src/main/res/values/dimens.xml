@@ -6,8 +6,9 @@
     <dimen name="menu_headline">20sp</dimen>
     <dimen name="content_text">28sp</dimen>
     <dimen name="content_tableHeader">20sp</dimen>
-    <dimen name="content_spacing">18dp</dimen>
+    <dimen name="content_spacing">25dp</dimen>
     <dimen name="title_headline">35sp</dimen>
+    <dimen name="btnHeight">100dp</dimen>
 
     <!-- Default screen margins, per the Android Design guidelines. -->
     <dimen name="activity_horizontal_margin">16dp</dimen>

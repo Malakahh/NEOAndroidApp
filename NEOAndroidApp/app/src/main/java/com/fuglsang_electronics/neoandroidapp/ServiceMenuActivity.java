@@ -60,8 +60,8 @@ public class ServiceMenuActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Log.w(TAG, "btnServiceResetCounters click");
 
-//                ChargerModel.ClearLogCounters();
-//                getLogCounters();
+                ChargerModel.ClearLogCounters();
+                getLogCounters();
             }
         });
 

@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -136,6 +137,8 @@ public class ChargerModel {
     {
         writer.setValue(msg);
         mGatt.writeCharacteristic(writer);
+
+        SystemClock.sleep(200);
     }
 
     /*
@@ -164,10 +167,11 @@ public class ChargerModel {
 
     private static boolean running = false;
     private static void PostResponse() {
+        Log.w(TAG, "readBuffer sie: " + readBuffer.size());
         if (running && !callbacks.isEmpty() && callbacks.peek().mBytesToRead > 0 && readBuffer.size() >= callbacks.peek().mBytesToRead) {
             CallbackItem callbackItem = callbacks.poll();
             byte[] msg = new byte[callbackItem.mBytesToRead];
-
+            Log.w(TAG, "PostResponse, yay");
             for (int i = 0; i < msg.length; i++) {
                 msg[i] = readBuffer.poll();
 
@@ -194,11 +198,13 @@ public class ChargerModel {
 
     private static void NextCommand()
     {
+        Log.w(TAG, "NextCommand");
         if (!running && !callbacks.isEmpty()) {
             running = true;
 
             if (callbacks.peek().mBytesToRead > 0) {
                 ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
+                Log.w(TAG, "Waiting for response");
             }
             else {
                 Log.w(TAG, "Query");
@@ -207,9 +213,11 @@ public class ChargerModel {
                 }
 
                 if (!callbacks.isEmpty()) {
+                    Log.w(TAG, "ChargerWrite");
                     ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
                 }
                 else {
+                    Log.w(TAG, "Running = false");
                     running = false;
                 }
             }
@@ -396,6 +404,8 @@ public class ChargerModel {
                 c_cmd_ee_data_low | readReg,
                 END_BYTE
         };
+
+        Log.w(TAG, "LogChargers");
 
         WaitForResponse(msg, 2, new Callback() {
             @Override
@@ -616,8 +626,8 @@ public class ChargerModel {
                 END_BYTE
         };
 
-        SendQuery(msg_depthDiscarges);
         SendQuery(msg_charge);
         SendQuery(msg_error);
+        SendQuery(msg_depthDiscarges);
     }
 }
