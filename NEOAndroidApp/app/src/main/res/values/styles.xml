@@ -30,27 +30,4 @@
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
     </style>
-
-    <style name="SampleThemeLight" parent="NNF_BaseTheme.Light">
-        <!--item name="nnf_list_item_divider">?android:attr/listDivider</item-->
-
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-
-        <item name="alertDialogTheme">@style/SampleAlertDialogThemeLight</item>
-
-        <!-- Make sure toolbar title is white -->
-        <item name="nnf_toolbarTheme">@style/SampleToolbarTheme</item>
-    </style>
-
-    <style name="SampleAlertDialogThemeLight" parent="Theme.AppCompat.Light.Dialog.Alert">
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-    </style>
-
-    <style name="SampleToolbarTheme" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
-        <item name="android:textColorPrimary">@android:color/white</item>
-    </style>
 </resources>

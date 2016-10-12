@@ -15,7 +15,6 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-feature
         android:name="android.hardware.bluetooth_le"
@@ -55,25 +54,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".ProgressActivity" />
-
-        <!-- Dropbox picker -->
-        <activity
-            android:name="com.fuglsang_electronics.neoandroidapp.DropboxFilePicker.DropboxFilePickerActivity"
-            android:label="@string/app_name"
-            android:theme="@style/SampleThemeLight"/>
-        <!-- Dropbox authenticator -->
-        <activity
-            android:name="com.dropbox.client2.android.AuthActivity"
-            android:configChanges="orientation|keyboard"
-            android:launchMode="singleTask">
-            <intent-filter>
-                <!-- Change this to be db- followed by your app key -->
-                <data android:scheme="db-2bzh054sl4653ke" />
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.BROWSABLE"/>
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
     </application>
 
 </manifest>

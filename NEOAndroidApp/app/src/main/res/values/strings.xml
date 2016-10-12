@@ -42,11 +42,6 @@
     <string name="passwordDialog_Hint">Enter service password</string>
     <string name="passwordDialog_HintWrongPassword">Wrong service password</string>
 
-    <!-- choose file selector dialog -->
-    <string name="chooseFileSelectorDialog_Headline">Choose storage</string>
-    <string name="chooseFileSelectorDialog_DropboxBtn">Dropbox</string>
-    <string name="chooseFileSelectorDialog_PhoneBtn">Phone</string>
-
     <!-- Progress Dialog -->
     <string name="progressDialog_Headline">Please wait</string>
 </resources>

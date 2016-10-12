@@ -60,83 +60,26 @@ public class ServiceMenuActivity extends AppCompatActivity {
         btnServiceResetCounters.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.w(TAG, "btnServiceResetCounters click");
-
                 ChargerModel.ClearLogCounters();
                 getLogCounters();
             }
         });
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        final View dialogLayout = View.inflate(this, R.layout.choose_file_selector_dialog, null);
-        builder.setCancelable(true);
-        builder.setView(dialogLayout);
-        final AlertDialog diag = builder.create();
-
         btnServiceReadLog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            Log.w(TAG, "btnServiceReadLog click");
+                final Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-            diag.setOnShowListener(new DialogInterface.OnShowListener() {
-                @Override
-                public void onShow(DialogInterface dialogInterface) {
-                    final Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                intent.putExtra("Mode", ProgressActivity.MODE_WRITE);
 
-                    intent.putExtra("Mode", ProgressActivity.MODE_WRITE);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
 
-                    Button dropboxBtn = (Button)dialogLayout.findViewById(R.id.chooseFileSelectorDialog_DropboxBtn);
-                    Button phoneBtn = (Button)dialogLayout.findViewById(R.id.chooseFileSelectorDialog_PhoneBtn);
-
-                    dropboxBtn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            intent.putExtra("Storage", ProgressActivity.STORAGE_DROPBOX);
-                            startActivity(intent);
-                            overridePendingTransition(0, 0);
-
-                            mTimer.cancel();
-                            diag.dismiss();
-                            finish();
-                        }
-                    });
-
-                    phoneBtn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            intent.putExtra("Storage", ProgressActivity.STORAGE_PHONE);
-                            startActivity(intent);
-                            overridePendingTransition(0, 0);
-
-                            mTimer.cancel();
-                            diag.dismiss();
-                            finish();
-                        }
-                    });
-                }
-            });
-
-            diag.show();
-
-
-
-
-//                Intent i = new Intent(getBaseContext(), FilePickerActivity.class);
-//
-//                // Set these depending on your use case. These are the defaults.
-//                i.putExtra(FilePickerActivity.EXTRA_ALLOW_CREATE_DIR, false);
-//                i.putExtra(FilePickerActivity.EXTRA_MODE, FilePickerActivity.MODE_NEW_FILE);
-//
-//                // Configure initial directory by specifying a String.
-//                // You could specify a String like "/storage/emulated/0/", but that can
-//                // dangerous. Always use Android's API calls to get paths to the SD-card or
-//                // internal memory.
-//                i.putExtra(FilePickerActivity.EXTRA_START_PATH, Environment.getExternalStorageDirectory().getPath());
-//
-//                startActivityForResult(i, READ_LOG);
+                mTimer.cancel();
+                finish();
             }
         });
 
