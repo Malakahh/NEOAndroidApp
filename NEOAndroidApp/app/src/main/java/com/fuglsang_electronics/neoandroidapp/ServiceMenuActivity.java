@@ -1,17 +1,12 @@
 package com.fuglsang_electronics.neoandroidapp;
 
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.os.Environment;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
-import com.nononsenseapps.filepicker.FilePickerActivity;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -60,7 +55,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
         btnServiceResetCounters.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ChargerModel.ClearLogCounters();
+                ChargerModel.clearLogCounters();
                 getLogCounters();
             }
         });
@@ -68,12 +63,12 @@ public class ServiceMenuActivity extends AppCompatActivity {
         btnServiceReadLog.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                final Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
+                Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-                intent.putExtra("Mode", ProgressActivity.MODE_WRITE);
+                intent.putExtra("Mode", ProgressActivity.MODE_TO_FILE);
 
                 startActivity(intent);
                 overridePendingTransition(0, 0);
@@ -86,7 +81,10 @@ public class ServiceMenuActivity extends AppCompatActivity {
         btnServiceWriteProgram.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.w(TAG, "btnServiceWriteProgram click");
+                Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
 //                Intent i = new Intent(getBaseContext(), FilePickerActivity.class);
 //
@@ -107,25 +105,25 @@ public class ServiceMenuActivity extends AppCompatActivity {
 
     private void getLogCounters() {
         Log.w(TAG, "getLogCounters");
-        ChargerModel.getLogCounterCharges(new ChargerModel.LogCounterCallback() {
+        ChargerModel.getLogCounterCharges(new ChargerModel.IntCallback() {
             @Override
-            public void Response(int count) {
-                txtViewLogCounterCharges.setText(Integer.toString(count));
-                Log.w(TAG, "Whuut: " + Integer.toString(count));
+            public void response(int value) {
+                txtViewLogCounterCharges.setText(Integer.toString(value));
+                Log.w(TAG, "Whuut: " + Integer.toString(value));
             }
         });
 
-        ChargerModel.getLogCountersErrors(new ChargerModel.LogCounterCallback() {
+        ChargerModel.getLogCountersErrors(new ChargerModel.IntCallback() {
             @Override
-            public void Response(int count) {
-                txtViewLogCounterErrors.setText(Integer.toString(count));
+            public void response(int value) {
+                txtViewLogCounterErrors.setText(Integer.toString(value));
             }
         });
 
-        ChargerModel.getLogCountersDepthDischarges(new ChargerModel.LogCounterCallback() {
+        ChargerModel.getLogCountersDepthDischarges(new ChargerModel.IntCallback() {
             @Override
-            public void Response(int count) {
-                txtViewLogCounterDepthDischarges.setText(Integer.toString(count));
+            public void response(int value) {
+                txtViewLogCounterDepthDischarges.setText(Integer.toString(value));
             }
         });
     }
@@ -141,32 +139,32 @@ public class ServiceMenuActivity extends AppCompatActivity {
         mTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                ChargerModel.getChargeVoltage(new ChargerModel.ChargeCallback() {
+                ChargerModel.getChargeVoltage(new ChargerModel.IntCallback() {
                     @Override
-                    public void Response(int value) {
+                    public void response(int value) {
                         double fValue = value / 1000f;
                         txtViewVoltage.setText(String.format("%1$.3f" + getString(R.string.unitsVoltage), fValue));
                     }
                 });
 
-                ChargerModel.getChargeCurrent(new ChargerModel.ChargeCallback() {
+                ChargerModel.getChargeCurrent(new ChargerModel.IntCallback() {
                     @Override
-                    public void Response(int value) {
+                    public void response(int value) {
                         double fValue = value / 1000f;
                         txtViewCurrent.setText(String.format("%1$.3f" + getString(R.string.unitsCurrent), fValue));
                     }
                 });
 
-                ChargerModel.getChargeProgramStep(new ChargerModel.ChargeCallback() {
+                ChargerModel.getChargeProgramStep(new ChargerModel.IntCallback() {
                     @Override
-                    public void Response(int value) {
+                    public void response(int value) {
                         txtViewProgramStep.setText(Integer.toString(value));
                     }
                 });
 
                 ChargerModel.getLEDStatus(new ChargerModel.LEDStatusCallback() {
                     @Override
-                    public void Response(ChargerModel.LEDStatus green, ChargerModel.LEDStatus yellow, ChargerModel.LEDStatus red) {
+                    public void response(ChargerModel.LEDStatus green, ChargerModel.LEDStatus yellow, ChargerModel.LEDStatus red) {
                         if (red == ChargerModel.LEDStatus.ON) {
                             txtViewError.setText(getString(R.string.service_error_misc));
                         }

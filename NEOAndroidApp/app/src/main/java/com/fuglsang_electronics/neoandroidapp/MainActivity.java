@@ -128,9 +128,9 @@ public class MainActivity extends AppCompatActivity {
 
         ChargerModel.clearBuffer();
 
-        ChargerModel.getProgrammeName(new ChargerModel.ProgrammeNameCallback() {
+        ChargerModel.getProgrammeName(new ChargerModel.StringCallback() {
             @Override
-            public void Response(String programmeName) {
+            public void response(String programmeName) {
                 mTxtViewProgrammeName.setText(programmeName);
             }
         });
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity {
     {
         ChargerModel.getLEDStatus(new ChargerModel.LEDStatusCallback() {
             @Override
-            public void Response(ChargerModel.LEDStatus green, ChargerModel.LEDStatus yellow, ChargerModel.LEDStatus red) {
+            public void response(ChargerModel.LEDStatus green, ChargerModel.LEDStatus yellow, ChargerModel.LEDStatus red) {
                 if (green == ChargerModel.LEDStatus.ON) {
                     mImgViewLEDGreen.setBackgroundResource(R.drawable.led_green);
                 }
