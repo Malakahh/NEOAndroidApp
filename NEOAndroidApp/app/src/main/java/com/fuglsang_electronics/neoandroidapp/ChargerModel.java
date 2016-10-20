@@ -768,6 +768,7 @@ class ChargerModel {
     }
 
     public static void getProgram(final ListCallback callback) {
+        readBuffer.clear();
         getProgramSize(new IntCallback() {
             @Override
             public void response(int value) {
@@ -796,7 +797,7 @@ class ChargerModel {
                         @Override
                         public void response(byte[] msg) {
                             program.add(msg[0]);
-                            program.add(msg[0]);
+                            program.add(msg[1]);
 
                             Log.w("LOLZ", Integer.toHexString(msg[0]));
                             Log.w("LOLZ", Integer.toHexString(msg[1]));
