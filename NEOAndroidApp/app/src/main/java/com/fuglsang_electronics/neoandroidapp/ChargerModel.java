@@ -731,8 +731,6 @@ class ChargerModel {
                     byte addrHigh = (byte)((fullAddr & (0xFF << 8)) >> 8);
                     byte addrLow = (byte)(fullAddr & 0xFF);
 
-                    Log.w(TAG, "AddrHigh: " + addrHigh + " - AddrLow: " + addrLow);
-
                     byte[] msgLogByte = new byte[] {
                             START_BYTE,
                             0x06,
@@ -769,4 +767,49 @@ class ChargerModel {
         getLog(callback, null);
     }
 
+    public static void getProgram(final ListCallback callback) {
+        getProgramSize(new IntCallback() {
+            @Override
+            public void response(int value) {
+                final int programSize = value;
+                final List<Byte> program = new ArrayList<>();
+
+                for (int i = 0; i < programSize; i++) {
+                    final int current = i;
+
+                    int fullAddr = ee_program_area + i;
+                    byte addrHigh = (byte)((fullAddr & (0xFF << 8)) >> 8);
+                    byte addrLow = (byte)(fullAddr & 0xFF);
+
+                    byte[] msgProgramBytes = new byte[] {
+                            START_BYTE,
+                            0x06,
+                            c_cmd_ee_addr_high | writeReg,
+                            addrHigh,
+                            c_cmd_ee_addr_low | writeReg,
+                            addrLow,
+                            c_cmd_ee_data_high | readReg,
+                            c_cmd_ee_data_low | readReg
+                    };
+
+                    WaitForResponse(msgProgramBytes, 2, new Callback() {
+                        @Override
+                        public void response(byte[] msg) {
+                            program.add(msg[0]);
+                            program.add(msg[0]);
+
+                            Log.w("LOLZ", Integer.toHexString(msg[0]));
+                            Log.w("LOLZ", Integer.toHexString(msg[1]));
+
+                            if (current == programSize - 1)
+                            {
+                                callback.response(program);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+
+    }
 }

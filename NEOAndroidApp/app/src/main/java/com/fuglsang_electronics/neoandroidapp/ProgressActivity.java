@@ -44,12 +44,12 @@ public class ProgressActivity extends AppCompatActivity {
         Intent i = new Intent(getBaseContext(), FilePickerActivity.class);
 
         if (mode == MODE_TO_FILE) {
-            // Set these depending on your use case.
             i.putExtra(FilePickerActivity.EXTRA_ALLOW_CREATE_DIR, true);
             i.putExtra(FilePickerActivity.EXTRA_MODE, FilePickerActivity.MODE_NEW_FILE);
         }
         else if (mode == MODE_FROM_FILE) {
-            //TODO
+            i.putExtra(FilePickerActivity.EXTRA_ALLOW_CREATE_DIR, false);
+            i.putExtra(FilePickerActivity.EXTRA_MODE, FilePickerActivity.MODE_FILE);
         }
         else {
             Log.w(TAG, "No valid mode selected");
@@ -101,6 +101,31 @@ public class ProgressActivity extends AppCompatActivity {
         });
     }
 
+    private void temp(final String path) {
+        Log.w(TAG, "Writing to file...");
+        ChargerModel.getProgram(new ChargerModel.ListCallback() {
+            @Override
+            public void response(List<Byte> value) {
+                try {
+                    FileWriter fw = new FileWriter(path + ".txt");
+
+                    for (int i = 0; i < value.size(); i++) {
+                        fw.write(value.get(i));
+                    }
+
+                    fw.flush();
+                    fw.close();
+                } catch (IOException e) {
+                    Log.w(TAG, "Unable to open file");
+                }
+            }
+        });
+    }
+
+    private void writeProgram(final String path) {
+
+    }
+
     private void updateProgress(final int current) {
         runOnUiThread(new Runnable() {
             @Override
@@ -123,10 +148,11 @@ public class ProgressActivity extends AppCompatActivity {
             Log.w(TAG, "RESULT!! " + path);
 
             if (requestCode == MODE_TO_FILE) {
-                getLog(path);
+                //getLog(path);
+                temp(path);
             }
             else if (requestCode == MODE_FROM_FILE) {
-                //TODO
+                writeProgram(path);
             }
         }
         else {

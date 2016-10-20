@@ -86,19 +86,15 @@ public class ServiceMenuActivity extends AppCompatActivity {
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
-//                Intent i = new Intent(getBaseContext(), FilePickerActivity.class);
-//
-//                // Set these depending on your use case. These are the defaults.
-//                i.putExtra(FilePickerActivity.EXTRA_ALLOW_CREATE_DIR, false);
-//                i.putExtra(FilePickerActivity.EXTRA_MODE, FilePickerActivity.MODE_FILE);
-//
-//                // Configure initial directory by specifying a String.
-//                // You could specify a String like "/storage/emulated/0/", but that can
-//                // dangerous. Always use Android's API calls to get paths to the SD-card or
-//                // internal memory.
-//                i.putExtra(FilePickerActivity.EXTRA_START_PATH, Environment.getExternalStorageDirectory().getPath());
-//
-//                startActivityForResult(i, WRITE_PROGRAM);
+                intent.putExtra("Mode", ProgressActivity.MODE_FROM_FILE);
+
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+
+                mTimer.cancel();
+                finish();
+
+//                ChargerModel.getProgram();
             }
         });
     }
