@@ -105,7 +105,6 @@ public class ServiceMenuActivity extends AppCompatActivity {
             @Override
             public void response(int value) {
                 txtViewLogCounterCharges.setText(Integer.toString(value));
-                Log.w(TAG, "Whuut: " + Integer.toString(value));
             }
         });
 

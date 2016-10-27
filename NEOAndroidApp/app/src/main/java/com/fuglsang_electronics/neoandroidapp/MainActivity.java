@@ -26,9 +26,10 @@ public class MainActivity extends AppCompatActivity {
     private ImageView mImgViewLEDGreen;
     private ImageView mImgViewLEDYellow;
     private ImageView mImgViewLEDRed;
-    private TextView mTxtViewProgrammeName;
+    private TextView mTxtViewProgramName;
+    private TextView mTxtViewMainProgramStep;
 
-    private final long mUpdateLEDDelayMS = 10000;
+    private final long mUpdateDelayMS = 10000;
     private Timer mTimer = new Timer();
 
     private static final String serviceMenuPassword = "1234";
@@ -109,7 +110,8 @@ public class MainActivity extends AppCompatActivity {
         mImgViewLEDGreen = (ImageView) findViewById(R.id.imgViewLEDGreen);
         mImgViewLEDYellow = (ImageView) findViewById(R.id.imgViewLEDYellow);
         mImgViewLEDRed = (ImageView) findViewById(R.id.imgViewLEDRed);
-        mTxtViewProgrammeName = (TextView) findViewById(R.id.txtViewProgrammeName);
+        mTxtViewProgramName = (TextView) findViewById(R.id.txtViewProgrammeName);
+        mTxtViewMainProgramStep = (TextView) findViewById(R.id.txtViewMainProgramStep);
 
         if (!BluetoothController.mConnected) {
             Intent intent = new Intent(getBaseContext(), BluetoothActivity.class);
@@ -131,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         ChargerModel.getProgrammeName(new ChargerModel.StringCallback() {
             @Override
             public void response(String programmeName) {
-                mTxtViewProgrammeName.setText(programmeName);
+                mTxtViewProgramName.setText(programmeName);
             }
         });
 
@@ -139,8 +141,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 updateLED();
+
+                ChargerModel.getChargeProgramStep(new ChargerModel.IntCallback() {
+                    @Override
+                    public void response(int value) {
+                        mTxtViewMainProgramStep.setText(Integer.toString(value));
+                    }
+                });
             }
-        }, 0, mUpdateLEDDelayMS);
+        }, 0, mUpdateDelayMS);
     }
 
 

@@ -132,7 +132,7 @@ class ChargerModel {
         if (bytes == null) {
             Log.w(TAG, "Bytes == null");
             return;
-        }
+        }+
 
         for (byte b : bytes) {
             readBuffer.add(b);
@@ -146,8 +146,11 @@ class ChargerModel {
         writer.setValue(msg);
         mGatt.writeCharacteristic(writer);
 
+
+        Log.w("fuck", "sent");
+
         //Delay to allow for bluetooth notification to take place
-        SystemClock.sleep(mNotificationDelay);
+        SystemClock.sleep(mNotificationDelay * msg.length);
     }
 
     /*
@@ -190,8 +193,17 @@ class ChargerModel {
                 TimeoutResponse();
             }
         };
-        mTimeoutResponseTimer = new Timer(); //This is new
-        mTimeoutResponseTimer.schedule(timertask, mTimeout * callbacks.peek().mBytesToRead);
+
+        if (mTimeoutResponseTimer != null) {
+            mTimeoutResponseTimer.cancel();
+        }
+
+        mTimeoutResponseTimer = new Timer();
+
+        CallbackItem ci = callbacks.peek();
+        if (ci != null) {
+            mTimeoutResponseTimer.schedule(timertask, mTimeout * ci.mBytesToRead);
+        }
     }
 
     private static void PostResponse() {
@@ -275,6 +287,7 @@ class ChargerModel {
 
     static void clearBuffer()
     {
+        mTimeoutResponseTimer.cancel();
         readBuffer.clear();
         callbacks.clear();
     }
@@ -728,8 +741,8 @@ class ChargerModel {
                     final int current = i;
 
                     int fullAddr = ee_program_area + programSize.getVal() + i;
-                    byte addrHigh = (byte)((fullAddr & (0xFF << 8)) >> 8);
-                    byte addrLow = (byte)(fullAddr & 0xFF);
+                    byte addrHigh = (byte)((fullAddr & ((byte)0xFF << 8)) >> 8);
+                    byte addrLow = (byte)(fullAddr & (byte)0xFF);
 
                     byte[] msgLogByte = new byte[] {
                             START_BYTE,
@@ -779,8 +792,8 @@ class ChargerModel {
                     final int current = i;
 
                     int fullAddr = ee_program_area + i;
-                    byte addrHigh = (byte)((fullAddr & (0xFF << 8)) >> 8);
-                    byte addrLow = (byte)(fullAddr & 0xFF);
+                    byte addrHigh = (byte)((fullAddr & ((byte)0xFF << 8)) >> 8);
+                    byte addrLow = (byte)(fullAddr & (byte)0xFF);
 
                     byte[] msgProgramBytes = new byte[] {
                             START_BYTE,
@@ -799,9 +812,6 @@ class ChargerModel {
                             program.add(msg[0]);
                             program.add(msg[1]);
 
-                            Log.w("LOLZ", Integer.toHexString(msg[0]));
-                            Log.w("LOLZ", Integer.toHexString(msg[1]));
-
                             if (current == programSize - 1)
                             {
                                 callback.response(program);
@@ -811,6 +821,132 @@ class ChargerModel {
                 }
             }
         });
+    }
 
+    public static void writeProgramName(byte[] name) {
+        byte[] msg_1_2 = new byte[] {
+                START_BYTE,
+                0x08,
+                c_cmd_ee_data_high | writeReg,
+                name[0],
+                c_cmd_ee_data_low | writeReg,
+                name[1],
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_program_name_1_2
+        };
+
+        byte[] msg_3_4 = new byte[] {
+                START_BYTE,
+                0x08,
+                c_cmd_ee_data_high | writeReg,
+                name[2],
+                c_cmd_ee_data_low | writeReg,
+                name[3],
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_program_name_3_4
+        };
+
+        byte[] msg_5_6 = new byte[] {
+                START_BYTE,
+                0x08,
+                c_cmd_ee_data_high | writeReg,
+                name[4],
+                c_cmd_ee_data_low | writeReg,
+                name[5],
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_program_name_5_6
+        };
+
+        byte[] msg_7_8 = new byte[] {
+                START_BYTE,
+                0x08,
+                c_cmd_ee_data_high | writeReg,
+                name[6],
+                c_cmd_ee_data_low | writeReg,
+                name[7],
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_program_name_7_8
+        };
+
+        SendQuery(msg_1_2);
+        SendQuery(msg_3_4);
+        SendQuery(msg_5_6);
+        SendQuery(msg_7_8);
+    }
+
+    public static void writeProgramSizeInWords(byte[] size) {
+        byte[] msg = new byte[] {
+                START_BYTE,
+                0x08,
+                c_cmd_ee_data_high | writeReg,
+                size[0],
+                c_cmd_ee_data_low | writeReg,
+                size[1],
+                c_cmd_ee_addr_high | writeReg,
+                0x00,
+                c_cmd_ee_addr_low | writeReg | writeEEprom,
+                ee_program_size
+        };
+
+        SendQuery(msg);
+    }
+
+    public static void writeProgram(byte[] program, IntCallback progressCallback) {
+        for (int i = 0; i <  program.length; i += 2) {
+            int fullAddr = ee_program_area + i / 2;
+            byte addrHigh = (byte)((fullAddr & 0x0000FF00) >> 8);
+            byte addrLow = (byte)(fullAddr & 0x000000FF);
+
+            byte[] msg = new byte[] {
+                    START_BYTE,
+                    0x08,
+                    c_cmd_ee_data_high | writeReg,
+                    program[i],
+                    c_cmd_ee_data_low | writeReg,
+                    program[i + 1],
+                    c_cmd_ee_addr_high | writeReg,
+                    addrHigh,
+                    c_cmd_ee_addr_low | writeReg | writeEEprom,
+                    addrLow
+            };
+
+            SendQuery(msg);
+
+            progressCallback.response(program[i]);
+            progressCallback.response(program[i + 1]);
+        }
+    }
+
+    public static void dataTest() {
+        while (true) {
+            byte[] msg_1 = new byte[] {
+                    START_BYTE,
+                    0x04,
+                    0x41,
+                    0x42,
+                    0x43,
+                    0x44
+            };
+
+            byte[] msg_2 = new byte[] {
+                    START_BYTE,
+                    0x04,
+                    0x45,
+                    0x46,
+                    0x47,
+                    0x48
+            };
+
+            SendQuery(msg_1);
+            SendQuery(msg_2);
+        }
     }
 }

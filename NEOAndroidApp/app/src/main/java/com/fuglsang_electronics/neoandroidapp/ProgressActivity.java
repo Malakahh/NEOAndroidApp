@@ -10,6 +10,7 @@ import android.widget.TextView;
 
 import com.dropbox.client2.DropboxAPI;
 import com.dropbox.client2.android.AndroidAuthSession;
+import com.fuglsang_electronics.neoandroidapp.ProgramParser.ProgramParser;
 import com.nononsenseapps.filepicker.FilePickerActivity;
 
 import java.io.FileWriter;
@@ -101,29 +102,42 @@ public class ProgressActivity extends AppCompatActivity {
         });
     }
 
-    private void temp(final String path) {
-        Log.w(TAG, "Writing to file...");
-        ChargerModel.getProgram(new ChargerModel.ListCallback() {
-            @Override
-            public void response(List<Byte> value) {
-                try {
-                    FileWriter fw = new FileWriter(path + ".txt");
-
-                    for (int i = 0; i < value.size(); i++) {
-                        fw.write(value.get(i));
-                    }
-
-                    fw.flush();
-                    fw.close();
-                } catch (IOException e) {
-                    Log.w(TAG, "Unable to open file");
-                }
-            }
-        });
-    }
+//    private void getProgram(final String path) {
+//        Log.w(TAG, "Writing to file...");
+//        ChargerModel.getProgram(new ChargerModel.ListCallback() {
+//            @Override
+//            public void response(List<Byte> value) {
+//                try {
+//                    FileWriter fw = new FileWriter(path + ".txt");
+//
+//                    for (int i = 0; i < value.size(); i++) {
+//                        fw.write(value.get(i));
+//                    }
+//
+//                    fw.flush();
+//                    fw.close();
+//                } catch (IOException e) {
+//                    Log.w(TAG, "Unable to open file");
+//                }
+//            }
+//        });
+//    }
 
     private void writeProgram(final String path) {
+        ProgramParser parser = new ProgramParser(path);
 
+        byte[] program = parser.getConverterdProgram();
+        maxByte.setVal(program.length);
+        progressBar.setMax(maxByte.getVal());
+
+        ChargerModel.writeProgramName(parser.ProgramName);
+        ChargerModel.writeProgramSizeInWords(parser.WordCount);
+        ChargerModel.writeProgram(program, new ChargerModel.IntCallback() {
+            @Override
+            public void response(int value) {
+                updateProgress(value);
+            }
+        });
     }
 
     private void updateProgress(final int current) {
@@ -142,14 +156,14 @@ public class ProgressActivity extends AppCompatActivity {
         Log.w(TAG, "request: " + requestCode + " result: " + resultCode);
 
         if (data != null) {
-            byteCount = 0;
+            byteCount = 1;
 
             final String path = data.getData().getPath();
             Log.w(TAG, "RESULT!! " + path);
 
             if (requestCode == MODE_TO_FILE) {
                 //getLog(path);
-                temp(path);
+                ChargerModel.dataTest();
             }
             else if (requestCode == MODE_FROM_FILE) {
                 writeProgram(path);
