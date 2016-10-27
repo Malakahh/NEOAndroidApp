@@ -29,8 +29,6 @@ public class ProgressActivity extends AppCompatActivity {
     ProgressBar progressBar;
     TextView statusText;
 
-    DropboxAPI<AndroidAuthSession> mDBApi = null;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
