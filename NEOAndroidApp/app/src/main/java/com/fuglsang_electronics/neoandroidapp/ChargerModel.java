@@ -132,7 +132,7 @@ class ChargerModel {
         if (bytes == null) {
             Log.w(TAG, "Bytes == null");
             return;
-        }+
+        }
 
         for (byte b : bytes) {
             readBuffer.add(b);
