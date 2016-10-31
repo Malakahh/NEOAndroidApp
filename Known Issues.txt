@@ -1,3 +1,12 @@
-WiFi can interfere with Bluetooth on Android 5.x.x
-http://stackoverflow.com/questions/17870189/android-4-3-bluetooth-low-energy-unstable
+Android Application:
 
+	-	Requires Android 4.3 at minimum
+
+	-	WiFi can interfere with Bluetooth on Android 5.x.x
+		http://stackoverflow.com/questions/17870189/android-4-3-bluetooth-low-energy-unstable
+
+
+
+Bluetooth + PIC module:
+
+	-	The RN4020 device requires minimum firmware version 1.23 to function
