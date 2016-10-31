@@ -147,7 +147,7 @@ class ChargerModel {
         mGatt.writeCharacteristic(writer);
 
 
-        Log.w("fuck", "sent");
+        Log.w("fuck", "sent " + String.format("%02X", msg[msg.length - 1]));
 
         //Delay to allow for bluetooth notification to take place
         SystemClock.sleep(mNotificationDelay * msg.length);
