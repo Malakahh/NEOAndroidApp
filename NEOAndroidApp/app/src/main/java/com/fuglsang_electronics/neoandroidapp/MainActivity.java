@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
     {
         super.onStart();
 
-        ChargerModel.clearBuffer();
+        ChargerModel.clearBuffers();
 
         ChargerModel.getProgrammeName(new ChargerModel.StringCallback() {
             @Override
@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         mTimer.cancel();
-        ChargerModel.clearBuffer();
+        ChargerModel.clearBuffers();
         System.exit(0);
     }
 }

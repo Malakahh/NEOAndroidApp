@@ -15,6 +15,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.zip.CRC32;
 
 class ChargerModel {
     enum LEDStatus {
@@ -57,7 +58,7 @@ class ChargerModel {
     private static final byte writeEEprom = (byte)0x40;
     //private static final byte readEEprom = (byte)0x00;
     private static final byte START_BYTE = '|';
-    //private static final byte END_BYTE = '|';
+    private static final byte CHECKSUM_LENGTH_BYTES = 4;
 
     //Register Layout
     private static final byte c_cmd_ee_data_high = (byte)0x05;
@@ -87,10 +88,8 @@ class ChargerModel {
     private static final LinkedBlockingQueue<Byte> readBuffer = new LinkedBlockingQueue<>();
     private static final LinkedBlockingQueue<CallbackItem> callbacks = new LinkedBlockingQueue<>();
 
-    private static final int mNotificationDelay = 200;
-
     private static Timer mTimeoutResponseTimer = new Timer();
-    private static final int mTimeout = mNotificationDelay * 2;
+    private static final int mTimeout = 400;
     private static boolean mRunning = false;
 
     static void collectCharacteristics(BluetoothGatt gatt) {
@@ -141,16 +140,31 @@ class ChargerModel {
         PostResponse();
     }
 
-    static void writeCharacteristic(byte[] msg)
+    private static void writeCharacteristic(byte[] cmd)
     {
+        byte[] msg = new byte[cmd.length + 2 + CHECKSUM_LENGTH_BYTES];
+
+        msg[0] = START_BYTE;
+        msg[1] = (byte)cmd.length;
+
+        CRC32 crc = new CRC32();
+        crc.update(cmd);
+        long checksum = crc.getValue();
+
+        for (int i = 0; i < CHECKSUM_LENGTH_BYTES; i++)
+        {
+            msg[2 + i] = (byte)(checksum >> CHECKSUM_LENGTH_BYTES - 1 - i);
+        }
+
+        for (int i = 0; i < cmd.length; i++)
+        {
+            msg[1 + CHECKSUM_LENGTH_BYTES + i] = cmd[i];
+        }
+
         writer.setValue(msg);
         mGatt.writeCharacteristic(writer);
 
-
         Log.w("fuck", "sent " + String.format("%02X", msg[msg.length - 1]));
-
-        //Delay to allow for bluetooth notification to take place
-        SystemClock.sleep(mNotificationDelay * msg.length);
     }
 
     /*
@@ -202,17 +216,44 @@ class ChargerModel {
 
         CallbackItem ci = callbacks.peek();
         if (ci != null) {
-            mTimeoutResponseTimer.schedule(timertask, mTimeout * ci.mBytesToRead);
+            mTimeoutResponseTimer.schedule(timertask, mTimeout);
         }
+    }
+
+    private static boolean ValidateResponse(byte[] msg) {
+        //Validate PIC checksum response byte
+        if (msg[0] != START_BYTE)
+            return false;
+
+        //Validate msg length. Should be N * 5 bytes where N is 1 * (checksum + data)
+        if ((msg.length - 1) % (CHECKSUM_LENGTH_BYTES + 1) != 0)
+            return false;
+
+        //Validate checksums
+        for (int i = 1; i < msg.length; i += 5) {
+            long checksum = 0;
+
+            for (int k = 0; k < CHECKSUM_LENGTH_BYTES; k++) {
+                checksum = msg[i + k] << 8 * (CHECKSUM_LENGTH_BYTES - 1 - k);
+            }
+
+            CRC32 crc = new CRC32();
+            crc.update(msg[i + 4]);
+
+            if (crc.getValue() != checksum)
+                return false;
+        }
+
+        return true;
     }
 
     private static void PostResponse() {
         Log.w(TAG, "readBuffer size: " + readBuffer.size());
 
-        if (mRunning && !callbacks.isEmpty() && callbacks.peek().mBytesToRead > 0 && readBuffer.size() >= callbacks.peek().mBytesToRead) {
+        if (mRunning && !callbacks.isEmpty() && readBuffer.size() >= callbacks.peek().mBytesToRead) {
             mTimeoutResponseTimer.cancel();
 
-            CallbackItem callbackItem = callbacks.poll();
+            CallbackItem callbackItem = callbacks.peek();
             byte[] msg = new byte[callbackItem.mBytesToRead];
 
             Log.w(TAG, "PostResponse, yay");
@@ -228,7 +269,14 @@ class ChargerModel {
                 }
             }
 
-            callbackItem.mCallback.response(msg);
+            if (ValidateResponse(msg)) {
+                if (callbackItem.mCallback != null) {
+                    callbackItem.mCallback.response(msg);
+                }
+
+                callbacks.poll();
+            }
+
             mRunning = false;
         }
 
@@ -256,26 +304,19 @@ class ChargerModel {
 
                 Log.w(TAG, "Waiting for response");
             }
-            else {
-                Log.w(TAG, "Query");
-                while (!callbacks.isEmpty() && callbacks.peek().mBytesToRead == 0) {
-                    ChargerModel.writeCharacteristic(callbacks.poll().mQuery);
-                }
-
-                if (!callbacks.isEmpty()) {
-                    Log.w(TAG, "ChargerWrite");
-                    ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
-                }
-                else {
-                    Log.w(TAG, "Running = false");
-                    mRunning = false;
-                }
-            }
         }
     }
 
     private static void WaitForResponse(byte[] query, int bytesToWait, Callback callback)
     {
+        //We expect a checksum
+        if (bytesToWait > 0) {
+            bytesToWait += CHECKSUM_LENGTH_BYTES * bytesToWait;
+        }
+
+        //We always expect at least an OK on the PIC checksum comparison
+        bytesToWait++;
+
         callbacks.add(new CallbackItem(query, bytesToWait, callback));
 
         NextCommand();
@@ -285,7 +326,7 @@ class ChargerModel {
         WaitForResponse(query, 0, null);
     }
 
-    static void clearBuffer()
+    static void clearBuffers()
     {
         mTimeoutResponseTimer.cancel();
         readBuffer.clear();
@@ -295,8 +336,6 @@ class ChargerModel {
     static void getLEDStatus(final LEDStatusCallback callback)
     {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x01,
                 c_led_mode | readReg
         };
 
@@ -354,8 +393,6 @@ class ChargerModel {
 
         //read ee_program_name_1_2
         byte[] msg_1_2 = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -366,8 +403,6 @@ class ChargerModel {
 
         //read ee_program_name_3_4
         byte[] msg_3_4 = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -378,8 +413,6 @@ class ChargerModel {
 
         //read ee_program_name_5_6
         byte[] msg_5_6 = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -390,8 +423,6 @@ class ChargerModel {
 
         //read ee_program_name_7_8
         byte[] msg_7_8 = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -446,8 +477,6 @@ class ChargerModel {
 
     static void getLogCounterCharges(final IntCallback callback) {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -476,8 +505,6 @@ class ChargerModel {
 
     public static void getLogCountersErrors(final IntCallback callback) {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -504,8 +531,6 @@ class ChargerModel {
 
     public static void getLogCountersDepthDischarges(final IntCallback callback) {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -532,14 +557,10 @@ class ChargerModel {
 
     public static void getChargeVoltage(final IntCallback callback) {
         byte[] msg_high = new byte[] {
-                START_BYTE,
-                0x01,
                 c_charge_volt_meas_high | readReg
         };
 
         byte[] msg_low = new byte[] {
-                START_BYTE,
-                0x01,
                 c_charge_volt_meas_low | readReg
         };
 
@@ -574,14 +595,10 @@ class ChargerModel {
 
     public static void getChargeCurrent(final IntCallback callback) {
         byte[] msg_high = new byte[] {
-                START_BYTE,
-                0x01,
                 c_charge_curr_meas_high | readReg
         };
 
         byte[] msg_low = new byte[] {
-                START_BYTE,
-                0x01,
                 c_charge_curr_meas_low | readReg
         };
 
@@ -616,8 +633,6 @@ class ChargerModel {
 
     public static void getChargeProgramStep(final IntCallback callback) {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x01,
                 c_charge_pstep_number | readReg
         };
 
@@ -639,8 +654,6 @@ class ChargerModel {
     public static void clearLogCounters()
     {
         byte[] msg_charge = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
@@ -652,8 +665,6 @@ class ChargerModel {
         };
 
         byte[] msg_error = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
@@ -665,8 +676,6 @@ class ChargerModel {
         };
 
         byte[] msg_depthDiscarges = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
@@ -684,8 +693,6 @@ class ChargerModel {
 
     public static void getProgramSize(final IntCallback callback) {
         byte[] msg_programSize = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -704,8 +711,6 @@ class ChargerModel {
 
     public static void getLogSize(final IntCallback callback) {
         byte[] msg_logSize = new byte[] {
-                START_BYTE,
-                0x06,
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
@@ -745,8 +750,6 @@ class ChargerModel {
                     byte addrLow = (byte)(fullAddr & (byte)0xFF);
 
                     byte[] msgLogByte = new byte[] {
-                            START_BYTE,
-                            0x06,
                             c_cmd_ee_addr_high | writeReg,
                             addrHigh,
                             c_cmd_ee_addr_low | writeReg,
@@ -796,8 +799,6 @@ class ChargerModel {
                     byte addrLow = (byte)(fullAddr & (byte)0xFF);
 
                     byte[] msgProgramBytes = new byte[] {
-                            START_BYTE,
-                            0x06,
                             c_cmd_ee_addr_high | writeReg,
                             addrHigh,
                             c_cmd_ee_addr_low | writeReg,
@@ -825,8 +826,6 @@ class ChargerModel {
 
     public static void writeProgramName(byte[] name) {
         byte[] msg_1_2 = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 name[0],
                 c_cmd_ee_data_low | writeReg,
@@ -838,8 +837,6 @@ class ChargerModel {
         };
 
         byte[] msg_3_4 = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 name[2],
                 c_cmd_ee_data_low | writeReg,
@@ -851,8 +848,6 @@ class ChargerModel {
         };
 
         byte[] msg_5_6 = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 name[4],
                 c_cmd_ee_data_low | writeReg,
@@ -864,8 +859,6 @@ class ChargerModel {
         };
 
         byte[] msg_7_8 = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 name[6],
                 c_cmd_ee_data_low | writeReg,
@@ -884,8 +877,6 @@ class ChargerModel {
 
     public static void writeProgramSizeInWords(byte[] size) {
         byte[] msg = new byte[] {
-                START_BYTE,
-                0x08,
                 c_cmd_ee_data_high | writeReg,
                 size[0],
                 c_cmd_ee_data_low | writeReg,
@@ -906,8 +897,6 @@ class ChargerModel {
             byte addrLow = (byte)(fullAddr & 0x000000FF);
 
             byte[] msg = new byte[] {
-                    START_BYTE,
-                    0x08,
                     c_cmd_ee_data_high | writeReg,
                     program[i],
                     c_cmd_ee_data_low | writeReg,
@@ -928,8 +917,6 @@ class ChargerModel {
     public static void dataTest() {
         while (true) {
             byte[] msg_1 = new byte[] {
-                    START_BYTE,
-                    0x04,
                     0x41,
                     0x42,
                     0x43,
@@ -937,8 +924,6 @@ class ChargerModel {
             };
 
             byte[] msg_2 = new byte[] {
-                    START_BYTE,
-                    0x04,
                     0x45,
                     0x46,
                     0x47,

@@ -127,7 +127,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
 
-        ChargerModel.clearBuffer();
+        ChargerModel.clearBuffers();
 
         getLogCounters();
 
@@ -178,7 +178,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         mTimer.cancel();
-        ChargerModel.clearBuffer();
+        ChargerModel.clearBuffers();
 
         Intent main = new Intent(ServiceMenuActivity.this, MainActivity.class);
         startActivity(main);
