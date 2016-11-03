@@ -89,7 +89,7 @@ class ChargerModel {
     private static final LinkedBlockingQueue<CallbackItem> callbacks = new LinkedBlockingQueue<>();
 
     private static Timer mTimeoutResponseTimer = new Timer();
-    private static final int mTimeout = 400;
+    private static final int mTimeout = 20000;
     private static boolean mRunning = false;
 
     static void collectCharacteristics(BluetoothGatt gatt) {
@@ -151,20 +151,23 @@ class ChargerModel {
         crc.update(cmd);
         long checksum = crc.getValue();
 
+
+
         for (int i = 0; i < CHECKSUM_LENGTH_BYTES; i++)
         {
-            msg[2 + i] = (byte)(checksum >> CHECKSUM_LENGTH_BYTES - 1 - i);
+            msg[2 + i] = (byte)(checksum >> (CHECKSUM_LENGTH_BYTES - 1 - i) * 8);
         }
+
+        //Log.w("CHKSUM", "eh: " + String.format("%08X", checksum) + " - " + String.format("%02X", msg[2]) + String.format("%02X", msg[3]) + String.format("%02X", msg[4]) + String.format("%02X", msg[5]));
+        Log.w("CHKSUM", "eh: " + String.format("%08X", checksum));
 
         for (int i = 0; i < cmd.length; i++)
         {
-            msg[1 + CHECKSUM_LENGTH_BYTES + i] = cmd[i];
+            msg[2 + CHECKSUM_LENGTH_BYTES + i] = cmd[i];
         }
 
         writer.setValue(msg);
         mGatt.writeCharacteristic(writer);
-
-        Log.w("fuck", "sent " + String.format("%02X", msg[msg.length - 1]));
     }
 
     /*
@@ -221,28 +224,32 @@ class ChargerModel {
     }
 
     private static boolean ValidateResponse(byte[] msg) {
+        Log.w("REPLY", "Start");
+
         //Validate PIC checksum response byte
         if (msg[0] != START_BYTE)
             return false;
 
-        //Validate msg length. Should be N * 5 bytes where N is 1 * (checksum + data)
-        if ((msg.length - 1) % (CHECKSUM_LENGTH_BYTES + 1) != 0)
-            return false;
+        Log.w("REPLY", "start byte is valid");
 
         //Validate checksums
         for (int i = 1; i < msg.length; i += 5) {
             long checksum = 0;
 
             for (int k = 0; k < CHECKSUM_LENGTH_BYTES; k++) {
-                checksum = msg[i + k] << 8 * (CHECKSUM_LENGTH_BYTES - 1 - k);
+                checksum |= (long)msg[i + k] << 8 * (CHECKSUM_LENGTH_BYTES - 1 - k);
             }
 
             CRC32 crc = new CRC32();
             crc.update(msg[i + 4]);
 
+            Log.w("REPLYlol", "i: " + Integer.toString(i) + " Checksum: " + String.format("%08X", checksum) + " crc: " + String.format("%08X", crc.getValue()));
+
             if (crc.getValue() != checksum)
                 return false;
         }
+
+        Log.w("REPLY", "Checksum is valid");
 
         return true;
     }
@@ -307,7 +314,7 @@ class ChargerModel {
         }
     }
 
-    private static void WaitForResponse(byte[] query, int bytesToWait, Callback callback)
+    private static void WaitForResponse(byte[] query, int bytesToWait, final Callback callback)
     {
         //We expect a checksum
         if (bytesToWait > 0) {
@@ -392,46 +399,55 @@ class ChargerModel {
         final byte[] response = new byte[8];
 
         //read ee_program_name_1_2
-        byte[] msg_1_2 = new byte[] {
+        byte[] msg_1_2a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
-                ee_program_name_1_2,
+                ee_program_name_1_2
+        };
+        byte[] msg_1_2b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
         //read ee_program_name_3_4
-        byte[] msg_3_4 = new byte[] {
+        byte[] msg_3_4a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
-                ee_program_name_3_4,
+                ee_program_name_3_4
+        };
+        byte[] msg_3_4b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
         //read ee_program_name_5_6
-        byte[] msg_5_6 = new byte[] {
+        byte[] msg_5_6a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
-                ee_program_name_5_6,
+                ee_program_name_5_6
+        };
+        byte[] msg_5_6b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
         //read ee_program_name_7_8
-        byte[] msg_7_8 = new byte[] {
+        byte[] msg_7_8a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
-                ee_program_name_7_8,
+                ee_program_name_7_8
+        };
+        byte[] msg_7_8b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
-        WaitForResponse(msg_1_2, 2, new Callback() {
+        SendQuery(msg_1_2a);
+        WaitForResponse(msg_1_2b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_1_2 - " + msg[0] + " - " + msg[1]);
@@ -440,7 +456,8 @@ class ChargerModel {
             }
         });
 
-        WaitForResponse(msg_3_4, 2, new Callback() {
+        SendQuery(msg_3_4a);
+        WaitForResponse(msg_3_4b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_3_4 - " + msg[0] + " - " + msg[1]);
@@ -449,7 +466,8 @@ class ChargerModel {
             }
         });
 
-        WaitForResponse(msg_5_6, 2, new Callback() {
+        SendQuery(msg_5_6a);
+        WaitForResponse(msg_5_6b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_5_6 - " + msg[0] + " - " + msg[1]);
@@ -458,7 +476,8 @@ class ChargerModel {
             }
         });
 
-        WaitForResponse(msg_7_8, 2, new Callback() {
+        SendQuery(msg_7_8a);
+        WaitForResponse(msg_7_8b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_7_8 - " + msg[0] + " - " + msg[1]);
