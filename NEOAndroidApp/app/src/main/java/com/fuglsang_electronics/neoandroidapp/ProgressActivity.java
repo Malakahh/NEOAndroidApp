@@ -1,18 +1,24 @@
 package com.fuglsang_electronics.neoandroidapp;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.dropbox.client2.DropboxAPI;
-import com.dropbox.client2.android.AndroidAuthSession;
 import com.fuglsang_electronics.neoandroidapp.ProgramParser.ProgramParser;
 import com.nononsenseapps.filepicker.FilePickerActivity;
 
+import org.apache.commons.io.FileUtils;
+
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +34,10 @@ public class ProgressActivity extends AppCompatActivity {
 
     ProgressBar progressBar;
     TextView statusText;
+    ListView listView;
+
+    ValContainer<List<LogHeader>> mLogHeaders = new ValContainer<>();
+    ValContainer<String> path = new ValContainer<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +46,7 @@ public class ProgressActivity extends AppCompatActivity {
 
         progressBar = (ProgressBar) findViewById(R.id.progressActivity_progressbar);
         statusText = (TextView) findViewById(R.id.progressActivity_status);
+        listView = (ListView) findViewById(R.id.progressListView);
 
         Intent intent = getIntent();
         int mode = intent.getIntExtra("Mode", 0);
@@ -64,45 +75,47 @@ public class ProgressActivity extends AppCompatActivity {
         startActivityForResult(i, mode);
     }
 
-    private void getLog(final String path) {
-        ChargerModel.getLogSize(new ChargerModel.IntCallback() {
-            @Override
-            public void response(int value) {
-                maxByte.setVal(value * 2);
-                progressBar.setMax(maxByte.getVal());
-            }
-        });
+    private void getLog(int pos) {
+        final LogHeader logHeader = mLogHeaders.getVal().get(pos);
 
-        ChargerModel.getLog(new ChargerModel.ListCallback() {
-            @Override
-            public void response(List<Byte> value) {
-                Log.w(TAG, "Writing to file..");
-                try {
-                    FileWriter fw = new FileWriter(path + ".txt");
+        ChargerModel.enterProgMode();
 
-                    for (int i = 0; i < value.size(); i++) {
-                        fw.write(value.get(i));
+        maxByte.setVal(logHeader.size * 2);
+        progressBar.setMax(maxByte.getVal());
+
+        ChargerModel.getLog(logHeader,
+                new ChargerModel.ListByteCallback() {
+                    @Override
+                    public void response(List<Byte> value) {
+                        Log.w(TAG, "Writing to file..");
+                        try {
+                            byte[] arr = new byte[value.size()];
+
+                            for (int i = 0; i < arr.length; i++) {
+                                arr[i] = value.get(i);
+                            }
+
+                            FileUtils.writeByteArrayToFile(new File(path.getVal() + ".txt"), arr);
+
+                            ChargerModel.enterNormalMode();
+                        } catch (IOException e) {
+                            Toast.makeText(ProgressActivity.this, "Unable to write to file storage", Toast.LENGTH_SHORT).show();
+                            Log.w(TAG, "Unable to open file");
+                            ChargerModel.enterNormalMode();
+                        }
+
                     }
-
-                    fw.flush();
-                    fw.close();
-
-                } catch (IOException e) {
-                    Log.w(TAG, "Unable to open file");
-                }
-
-            }
-        }, new ChargerModel.IntCallback() {
-            @Override
-            public void response(int value) {
-                updateProgress(value);
-            }
-        });
+                }, new ChargerModel.IntCallback() {
+                    @Override
+                    public void response(int value) {
+                        updateProgress(value);
+                    }
+            });
     }
 
 //    private void getProgram(final String path) {
 //        Log.w(TAG, "Writing to file...");
-//        ChargerModel.getProgram(new ChargerModel.ListCallback() {
+//        ChargerModel.getProgram(new ChargerModel.ListByteCallback() {
 //            @Override
 //            public void response(List<Byte> value) {
 //                try {
@@ -121,13 +134,42 @@ public class ProgressActivity extends AppCompatActivity {
 //        });
 //    }
 
-    private void writeProgram(final String path) {
-        ProgramParser parser = new ProgramParser(path);
+    private void populateLogHeaderList() {
+        final Context currentContext = this;
+
+        listView.setVisibility(View.VISIBLE);
+
+        ChargerModel.getLogHeaders(new ChargerModel.ListLogHeaderCallback() {
+            @Override
+            public void response(List<LogHeader> logHeaders) {
+                mLogHeaders.setVal(logHeaders);
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        listView.setAdapter(new ProgressListViewAdapter(currentContext, R.layout.progress_listview_item, mLogHeaders.getVal()));
+                        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                            @Override
+                            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                getLog(i);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    private void writeProgram() {
+        listView.setVisibility(View.GONE);
+
+        ProgramParser parser = new ProgramParser(path.getVal());
 
         byte[] program = parser.getConverterdProgram();
         maxByte.setVal(program.length);
         progressBar.setMax(maxByte.getVal());
 
+        ChargerModel.enterProgMode();
         ChargerModel.writeProgramName(parser.ProgramName);
         ChargerModel.writeProgramSizeInWords(parser.WordCount);
         ChargerModel.writeProgram(program, new ChargerModel.IntCallback() {
@@ -136,6 +178,7 @@ public class ProgressActivity extends AppCompatActivity {
                 updateProgress(value);
             }
         });
+        ChargerModel.enterNormalMode();
     }
 
     private void updateProgress(final int current) {
@@ -156,15 +199,14 @@ public class ProgressActivity extends AppCompatActivity {
         if (data != null) {
             byteCount = 1;
 
-            final String path = data.getData().getPath();
-            Log.w(TAG, "RESULT!! " + path);
+            this.path.setVal(data.getData().getPath());
+            Log.w(TAG, "RESULT!! " + path.getVal());
 
             if (requestCode == MODE_TO_FILE) {
-                //getLog(path);
-                ChargerModel.dataTest();
+                populateLogHeaderList();
             }
             else if (requestCode == MODE_FROM_FILE) {
-                writeProgram(path);
+                writeProgram();
             }
         }
         else {

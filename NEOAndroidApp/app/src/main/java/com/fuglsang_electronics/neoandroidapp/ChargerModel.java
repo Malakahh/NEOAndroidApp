@@ -6,7 +6,6 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -38,8 +37,20 @@ class ChargerModel {
         void response(int value);
     }
 
-    interface ListCallback {
+    interface ListByteCallback {
         void response(List<Byte> value);
+    }
+
+    interface ListLogHeaderCallback {
+        void response(List<LogHeader> value);
+    }
+
+    interface LogHeaderCallback {
+        void response(LogHeader value);
+    }
+
+    interface ActionCallback {
+        void response();
     }
 
     private static final String PRIVATE_SERVICE_UUID = "f4f232be-5a53-11e6-8b77-86f30ca893d3";
@@ -61,6 +72,7 @@ class ChargerModel {
     private static final byte CHECKSUM_LENGTH_BYTES = 4;
 
     //Register Layout
+    private static final byte m_gbc_operation_mode = (byte)0x04;
     private static final byte c_cmd_ee_data_high = (byte)0x05;
     private static final byte c_cmd_ee_data_low = (byte)0x06;
     private static final byte c_cmd_ee_addr_high = (byte)0x07;
@@ -83,13 +95,13 @@ class ChargerModel {
     private static final byte ee_program_name_5_6 = (byte)0x20;
     private static final byte ee_program_name_7_8 = (byte)0x21;
     private static final byte ee_program_size = (byte)0x22;
-    private static final byte ee_program_area = (byte)0x23;
+    public static final byte ee_program_area = (byte)0x23;
 
     private static final LinkedBlockingQueue<Byte> readBuffer = new LinkedBlockingQueue<>();
     private static final LinkedBlockingQueue<CallbackItem> callbacks = new LinkedBlockingQueue<>();
 
     private static Timer mTimeoutResponseTimer = new Timer();
-    private static final int mTimeout = 20000;
+    private static final int mTimeout = 4000;
     private static boolean mRunning = false;
 
     static void collectCharacteristics(BluetoothGatt gatt) {
@@ -124,8 +136,7 @@ class ChargerModel {
         mGatt.writeDescriptor(descriptor);
     }
 
-    static void onCharacteristicRead(BluetoothGattCharacteristic characteristic)
-    {
+    static void onCharacteristicRead(BluetoothGattCharacteristic characteristic) {
         byte[] bytes = characteristic.getValue();
 
         if (bytes == null) {
@@ -135,13 +146,13 @@ class ChargerModel {
 
         for (byte b : bytes) {
             readBuffer.add(b);
+            Log.w("BUFFER", String.format("%02X", (int)b & 0xFF));
         }
 
         PostResponse();
     }
 
-    private static void writeCharacteristic(byte[] cmd)
-    {
+    private static void writeCharacteristic(byte[] cmd) {
         byte[] msg = new byte[cmd.length + 2 + CHECKSUM_LENGTH_BYTES];
 
         msg[0] = START_BYTE;
@@ -151,18 +162,14 @@ class ChargerModel {
         crc.update(cmd);
         long checksum = crc.getValue();
 
-
-
-        for (int i = 0; i < CHECKSUM_LENGTH_BYTES; i++)
-        {
+        for (int i = 0; i < CHECKSUM_LENGTH_BYTES; i++) {
             msg[2 + i] = (byte)(checksum >> (CHECKSUM_LENGTH_BYTES - 1 - i) * 8);
         }
 
         //Log.w("CHKSUM", "eh: " + String.format("%08X", checksum) + " - " + String.format("%02X", msg[2]) + String.format("%02X", msg[3]) + String.format("%02X", msg[4]) + String.format("%02X", msg[5]));
         Log.w("CHKSUM", "eh: " + String.format("%08X", checksum));
 
-        for (int i = 0; i < cmd.length; i++)
-        {
+        for (int i = 0; i < cmd.length; i++) {
             msg[2 + CHECKSUM_LENGTH_BYTES + i] = cmd[i];
         }
 
@@ -185,7 +192,7 @@ class ChargerModel {
         };
         ChargerModel.writeCharacteristic(msg);
 
-        WaitForResponse(2, new Callback() {
+        QueueQuery(2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "one: " + String.format("%02X" ,msg[0]) + " two: " + String.format("%02X" ,msg[1]));
@@ -203,7 +210,7 @@ class ChargerModel {
         NextCommand();
     }
 
-    public static void StartTimeoutTimer() {
+    private static void StartTimeoutTimer() {
         TimerTask timertask = new TimerTask() {
             @Override
             public void run() {
@@ -223,39 +230,48 @@ class ChargerModel {
         }
     }
 
-    private static boolean ValidateResponse(byte[] msg) {
-        Log.w("REPLY", "Start");
+    private static boolean ValidateResponse(byte[] msg, ValContainer<byte[]> dataOut) {
+        byte[] data = new byte[(msg.length - 1) / 5];
 
         //Validate PIC checksum response byte
-        if (msg[0] != START_BYTE)
+        if (msg[0] != START_BYTE) {
+            Log.w(TAG, "Validation failed - START_BYTE");
             return false;
-
-        Log.w("REPLY", "start byte is valid");
+        }
 
         //Validate checksums
         for (int i = 1; i < msg.length; i += 5) {
             long checksum = 0;
 
             for (int k = 0; k < CHECKSUM_LENGTH_BYTES; k++) {
-                checksum |= (long)msg[i + k] << 8 * (CHECKSUM_LENGTH_BYTES - 1 - k);
+                checksum |= ((long)msg[i + k] & 0xFF) << (8 * (CHECKSUM_LENGTH_BYTES - 1 - k));
             }
 
             CRC32 crc = new CRC32();
             crc.update(msg[i + 4]);
 
-            Log.w("REPLYlol", "i: " + Integer.toString(i) + " Checksum: " + String.format("%08X", checksum) + " crc: " + String.format("%08X", crc.getValue()));
+            data[(i - 1) / 5] = msg[i + 4];
 
-            if (crc.getValue() != checksum)
+            if (crc.getValue() != checksum) {
+                Log.w(TAG, "Validation failed - checksum");
                 return false;
+            }
         }
 
-        Log.w("REPLY", "Checksum is valid");
+        if (dataOut != null) {
+            dataOut.setVal(data);
+        }
 
         return true;
     }
 
     private static void PostResponse() {
-        Log.w(TAG, "readBuffer size: " + readBuffer.size());
+        Log.w("BUFFER", "readBuffer size: " + readBuffer.size());
+//        Byte[] b = new Byte[readBuffer.size()];
+//        readBuffer.toArray(b);
+//        for (int i = 0; i < b.length; i++) {
+//            Log.w("BUFFER", String.format("%02X", (int)b[i] & 0xFF));
+//        }
 
         if (mRunning && !callbacks.isEmpty() && readBuffer.size() >= callbacks.peek().mBytesToRead) {
             mTimeoutResponseTimer.cancel();
@@ -276,22 +292,25 @@ class ChargerModel {
                 }
             }
 
-            if (ValidateResponse(msg)) {
+            ValContainer<byte[]> data = new ValContainer<>();
+
+            if (ValidateResponse(msg, data)) {
                 if (callbackItem.mCallback != null) {
-                    callbackItem.mCallback.response(msg);
+                    callbackItem.mCallback.response(data.getVal());
                 }
 
                 callbacks.poll();
             }
+            else {
+                readBuffer.clear();
+            }
 
             mRunning = false;
+            NextCommand();
         }
-
-        NextCommand();
     }
 
-    private static void NextCommand()
-    {
+    private static void NextCommand() {
         Log.w(TAG, "NextCommand");
 
         if (callbacks.isEmpty()) {
@@ -314,8 +333,7 @@ class ChargerModel {
         }
     }
 
-    private static void WaitForResponse(byte[] query, int bytesToWait, final Callback callback)
-    {
+    private static void QueueQuery(byte[] query, int bytesToWait, final Callback callback) {
         //We expect a checksum
         if (bytesToWait > 0) {
             bytesToWait += CHECKSUM_LENGTH_BYTES * bytesToWait;
@@ -329,15 +347,15 @@ class ChargerModel {
         NextCommand();
     }
 
-    private static void SendQuery(byte[] query) {
-        WaitForResponse(query, 0, null);
+    private static void QueueQuery(byte[] query) {
+        QueueQuery(query, 0, null);
     }
 
     static void clearBuffers()
     {
         mTimeoutResponseTimer.cancel();
-        readBuffer.clear();
         callbacks.clear();
+        readBuffer.clear();
     }
 
     static void getLEDStatus(final LEDStatusCallback callback)
@@ -346,7 +364,7 @@ class ChargerModel {
                 c_led_mode | readReg
         };
 
-        WaitForResponse(msg, 1, new Callback() {
+        QueueQuery(msg, 1, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg: " + msg[0]);
@@ -356,7 +374,7 @@ class ChargerModel {
                 LEDStatus yellow = LEDStatus.OFF;
                 LEDStatus red = LEDStatus.OFF;
 
-                if (((bitmask >> 0) & 1) == 1) {
+                if ((bitmask & 1) == 1) {
                     green = LEDStatus.ON;
                 }
                 else if (((bitmask >> 1) & 1) == 1) {
@@ -446,8 +464,8 @@ class ChargerModel {
                 c_cmd_ee_data_low | readReg
         };
 
-        SendQuery(msg_1_2a);
-        WaitForResponse(msg_1_2b, 2, new Callback() {
+        QueueQuery(msg_1_2a);
+        QueueQuery(msg_1_2b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_1_2 - " + msg[0] + " - " + msg[1]);
@@ -456,8 +474,8 @@ class ChargerModel {
             }
         });
 
-        SendQuery(msg_3_4a);
-        WaitForResponse(msg_3_4b, 2, new Callback() {
+        QueueQuery(msg_3_4a);
+        QueueQuery(msg_3_4b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_3_4 - " + msg[0] + " - " + msg[1]);
@@ -466,8 +484,8 @@ class ChargerModel {
             }
         });
 
-        SendQuery(msg_5_6a);
-        WaitForResponse(msg_5_6b, 2, new Callback() {
+        QueueQuery(msg_5_6a);
+        QueueQuery(msg_5_6b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_5_6 - " + msg[0] + " - " + msg[1]);
@@ -476,8 +494,8 @@ class ChargerModel {
             }
         });
 
-        SendQuery(msg_7_8a);
-        WaitForResponse(msg_7_8b, 2, new Callback() {
+        QueueQuery(msg_7_8a);
+        QueueQuery(msg_7_8b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "msg_7_8 - " + msg[0] + " - " + msg[1]);
@@ -495,18 +513,22 @@ class ChargerModel {
     }
 
     static void getLogCounterCharges(final IntCallback callback) {
-        byte[] msg = new byte[] {
+        byte[] msg_a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
                 ee_log_cnt_charg,
+        };
+
+        byte[] msg_b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
         Log.w(TAG, "LogChargers");
 
-        WaitForResponse(msg, 2, new Callback() {
+        QueueQuery(msg_a);
+        QueueQuery(msg_b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 final int i = ((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF);
@@ -523,16 +545,20 @@ class ChargerModel {
     }
 
     public static void getLogCountersErrors(final IntCallback callback) {
-        byte[] msg = new byte[] {
+        byte[] msg_a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
                 ee_log_cnt_error,
+        };
+
+        byte[] msg_b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
-        WaitForResponse(msg, 2, new Callback() {
+        QueueQuery(msg_a);
+        QueueQuery(msg_b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 final int i = ((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF);
@@ -549,16 +575,20 @@ class ChargerModel {
     }
 
     public static void getLogCountersDepthDischarges(final IntCallback callback) {
-        byte[] msg = new byte[] {
+        byte[] msg_a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
-                ee_log_cnt_depth,
+                ee_log_cnt_depth
+        };
+
+        byte[] msg_b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
-        WaitForResponse(msg, 2, new Callback() {
+        QueueQuery(msg_a);
+        QueueQuery(msg_b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 final int i = ((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF);
@@ -585,7 +615,7 @@ class ChargerModel {
 
         final byte[] response = new byte[2];
 
-        WaitForResponse(msg_high, 1, new Callback() {
+        QueueQuery(msg_high, 1, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "ChargeVoltage - high: " + (msg[0] & 0xFF));
@@ -593,7 +623,7 @@ class ChargerModel {
             }
         });
 
-        WaitForResponse(msg_low, 1, new Callback() {
+        QueueQuery(msg_low, 1, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "ChargeVoltage - low: " + (msg[0] & 0xFF));
@@ -623,7 +653,7 @@ class ChargerModel {
 
         final byte[] response = new byte[2];
 
-        WaitForResponse(msg_high, 1, new Callback() {
+        QueueQuery(msg_high, 1, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "ChargeCurrent - high: " + (msg[0] & 0xFF));
@@ -631,7 +661,7 @@ class ChargerModel {
             }
         });
 
-        WaitForResponse(msg_low, 1, new Callback() {
+        QueueQuery(msg_low, 1, new Callback() {
             @Override
             public void response(byte[] msg) {
                 Log.w(TAG, "ChargeCurrent - low: " + (msg[0] & 0xFF));
@@ -655,7 +685,7 @@ class ChargerModel {
                 c_charge_pstep_number | readReg
         };
 
-        WaitForResponse(msg, 1, new Callback() {
+        QueueQuery(msg, 1, new Callback() {
             @Override
             public void response(final byte[] msg) {
                 Log.w(TAG, "ChargeProgramStep: " + (msg[0] & 0xFF));
@@ -672,55 +702,71 @@ class ChargerModel {
 
     public static void clearLogCounters()
     {
-        byte[] msg_charge = new byte[] {
+        byte[] msg_charge_a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
                 0x00,
+        };
+
+        byte[] msg_charge_b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_log_cnt_charg
         };
 
-        byte[] msg_error = new byte[] {
+        byte[] msg_error_a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
                 0x00,
+        };
+
+        byte[] msg_error_b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_log_cnt_error
         };
 
-        byte[] msg_depthDiscarges = new byte[] {
+        byte[] msg_depthDiscarges_a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 0x00,
                 c_cmd_ee_data_low | writeReg,
                 0x00,
+        };
+
+        byte[] msg_depthDiscarges_b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_log_cnt_depth
         };
 
-        SendQuery(msg_charge);
-        SendQuery(msg_error);
-        SendQuery(msg_depthDiscarges);
+        QueueQuery(msg_charge_a);
+        QueueQuery(msg_charge_b);
+        QueueQuery(msg_error_a);
+        QueueQuery(msg_error_b);
+        QueueQuery(msg_depthDiscarges_a);
+        QueueQuery(msg_depthDiscarges_b);
     }
 
     public static void getProgramSize(final IntCallback callback) {
-        byte[] msg_programSize = new byte[] {
+        byte[] msg_programSize_a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
                 ee_program_size,
+        };
+
+        byte[] msg_programSize_b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
-        WaitForResponse(msg_programSize, 2, new Callback() {
+        QueueQuery(msg_programSize_a);
+        QueueQuery(msg_programSize_b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 callback.response(((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF));
@@ -728,17 +774,22 @@ class ChargerModel {
         });
     }
 
+    //This is actually EEprom size, but to keep with conventions of the charger, it is named log size
     public static void getLogSize(final IntCallback callback) {
-        byte[] msg_logSize = new byte[] {
+        byte[] msg_logSize_a = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg,
                 ee_log_ee_size,
+        };
+
+        byte[] msg_logSize_b = new byte[] {
                 c_cmd_ee_data_high | readReg,
                 c_cmd_ee_data_low | readReg
         };
 
-        WaitForResponse(msg_logSize, 2, new Callback() {
+        QueueQuery(msg_logSize_a);
+        QueueQuery(msg_logSize_b, 2, new Callback() {
             @Override
             public void response(byte[] msg) {
                 callback.response(((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF));
@@ -746,8 +797,44 @@ class ChargerModel {
         });
     }
 
-    public static void getLog(final ListCallback callback, final IntCallback onByteReceivedCallback) {
+    private static void retrieveLogHeaderRecursively(final int logStart, final int eePromSize, final LogHeaderCallback logHeaderCallback, final ActionCallback onFinished) {
+        byte[] msg_a = new byte[] {
+                c_cmd_ee_addr_high | writeReg,
+                (byte)((logStart >> 8) & 0xFF),
+                c_cmd_ee_addr_low | writeReg,
+                (byte)(logStart & 0xFF),
+        };
+
+        byte[] msg_b = new byte[] {
+                c_cmd_ee_data_high | readReg,
+                c_cmd_ee_data_low | readReg
+        };
+
+        QueueQuery(msg_a);
+        QueueQuery(msg_b, 2, new Callback() {
+            @Override
+            public void response(byte[] msg) {
+                LogHeader logHeader = new LogHeader();
+                logHeader.size = ((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF);
+                logHeader.address = logStart;
+                logHeaderCallback.response(logHeader);
+
+                if (logHeader.address + logHeader.size + 1 < eePromSize) {
+                    retrieveLogHeaderRecursively(logHeader.address + logHeader.size + 1, eePromSize, logHeaderCallback, onFinished);
+                }
+                else {
+                    onFinished.response();
+                }
+            }
+        });
+    }
+
+    public static void getLogHeaders(final ListLogHeaderCallback callback) {
         final ValContainer<Integer> programSize = new ValContainer<>();
+
+        final List<LogHeader> headers = new ArrayList<>();
+
+        enterProgMode();
 
         getProgramSize(new IntCallback() {
             @Override
@@ -758,51 +845,154 @@ class ChargerModel {
 
         getLogSize(new IntCallback() {
             @Override
-            public void response(final int logSize) {
-                final List<Byte> log = new ArrayList<>();
+            public void response(final int eePromSize) {
+                final int logFileStart = ee_program_area + programSize.getVal();
 
-                for (int i = 0; i < logSize; i++) {
-                    final int current = i;
+                byte[] msg_initialOffset_a = new byte[] {
+                        c_cmd_ee_addr_high | writeReg,
+                        (byte)(((logFileStart + 1) >> 8) & 0xFF),
+                        c_cmd_ee_addr_low | writeReg,
+                        (byte)((logFileStart + 1) & 0xFF),
+                };
 
-                    int fullAddr = ee_program_area + programSize.getVal() + i;
-                    byte addrHigh = (byte)((fullAddr & ((byte)0xFF << 8)) >> 8);
-                    byte addrLow = (byte)(fullAddr & (byte)0xFF);
+                byte[] msg_initialOffset_b = new byte[] {
+                        c_cmd_ee_data_high | readReg,
+                        c_cmd_ee_data_low | readReg
+                };
 
-                    byte[] msgLogByte = new byte[] {
-                            c_cmd_ee_addr_high | writeReg,
-                            addrHigh,
-                            c_cmd_ee_addr_low | writeReg,
-                            addrLow,
-                            c_cmd_ee_data_high | readReg,
-                            c_cmd_ee_data_low | readReg
-                    };
+                QueueQuery(msg_initialOffset_a);
+                QueueQuery(msg_initialOffset_b, 2, new Callback() {
+                    @Override
+                    public void response(byte[] msg) {
+                        int offset = ((msg[0] & 0xFF) << 8) | (msg[1] & 0xFF);
 
-                    WaitForResponse(msgLogByte, 2, new Callback() {
-                        @Override
-                        public void response(byte[] msg) {
-                            log.add(msg[0]);
-                            log.add(msg[1]);
-
-                            if (onByteReceivedCallback != null) {
-                                onByteReceivedCallback.response(msg[0]);
-                                onByteReceivedCallback.response(msg[1]);
+                        retrieveLogHeaderRecursively(logFileStart + offset, eePromSize, new LogHeaderCallback() {
+                            @Override
+                            public void response(LogHeader logHeader) {
+                                headers.add(logHeader);
                             }
-
-                            if (current == logSize - 1) {
-                                callback.response(log);
+                        }, new ActionCallback() {
+                            @Override
+                            public void response() {
+                                enterNormalMode();
+                                callback.response(headers);
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             }
         });
     }
 
-    public static void getLog(final ListCallback callback) {
-        getLog(callback, null);
+    public static void getLog(final LogHeader logHeader, final ListByteCallback callback, final IntCallback onByteReceivedCallback) {
+        enterProgMode();
+
+        final List<Byte> log = new ArrayList<>();
+
+        final int logEnd = logHeader.address + logHeader.size;
+
+        for (int i = logHeader.address; i < logEnd; i++) {
+            final int current = i;
+
+            byte[] msg_logByte_a = new byte[] {
+                    c_cmd_ee_addr_high | writeReg,
+                    (byte)(((i + 1) >> 8) & 0xFF),
+                    c_cmd_ee_addr_low | writeReg,
+                    (byte)((i + 1) & 0xFF),
+            };
+
+            byte[] msg_logByte_b = new byte[] {
+                    c_cmd_ee_data_high | readReg,
+                    c_cmd_ee_data_low | readReg
+            };
+
+            QueueQuery(msg_logByte_a);
+            QueueQuery(msg_logByte_b, 2, new Callback() {
+                @Override
+                public void response(byte[] msg) {
+                    log.add(msg[0]);
+                    log.add(msg[1]);
+
+                    if (onByteReceivedCallback != null) {
+                        onByteReceivedCallback.response(msg[0]);
+                        onByteReceivedCallback.response(msg[1]);
+                    }
+
+                    if (current == logEnd - 1) {
+                        Log.w(TAG, "LOG GOTTEN");
+                        callback.response(log);
+                        enterNormalMode();
+                    }
+                }
+            });
+        }
+
+
+
+
+//        final ValContainer<Integer> programSize = new ValContainer<>();
+//
+//        enterProgMode();
+//
+//        getProgramSize(new IntCallback() {
+//            @Override
+//            public void response(int value) {
+//                programSize.setVal(value);
+//            }
+//        });
+//
+//        getLogSize(new IntCallback() {
+//            @Override
+//            public void response(final int logSize) {
+//                final List<Byte> log = new ArrayList<>();
+//
+//                Log.w("logsize", "logsize: " + logSize);
+//
+//                for (int i = ee_program_area + programSize.getVal(); i < logSize; i++) {
+//                    final int current = i;
+//
+//                    byte addrHigh = (byte)((i & ((byte)0xFF << 8)) >> 8);
+//                    byte addrLow = (byte)(i & (byte)0xFF);
+//
+//                    byte[] msgLogByte_a = new byte[] {
+//                            c_cmd_ee_addr_high | writeReg,
+//                            addrHigh,
+//                            c_cmd_ee_addr_low | writeReg,
+//                            addrLow,
+//                    };
+//
+//                    byte[] msgLogByte_b = new byte[] {
+//                            c_cmd_ee_data_high | readReg,
+//                            c_cmd_ee_data_low | readReg
+//                    };
+//
+//                    QueueQuery(msgLogByte_a);
+//                    QueueQuery(msgLogByte_b, 2, new Callback() {
+//                        @Override
+//                        public void response(byte[] msg) {
+//                            log.add(msg[0]);
+//                            log.add(msg[1]);
+//
+//                            Log.w("Hejsa", "current: " + current + " programSize: " + programSize.getVal() + " logSize: " + logSize);
+//
+//                            if (onByteReceivedCallback != null) {
+//                                onByteReceivedCallback.response(msg[0]);
+//                                onByteReceivedCallback.response(msg[1]);
+//                            }
+//
+//                            if (current == logSize - 1) {
+//                                Log.w(TAG, "LOG GOTTEN");
+//                                callback.response(log);
+//                                enterNormalMode();
+//                            }
+//                        }
+//                    });
+//                }
+//            }
+//        });
     }
 
-    public static void getProgram(final ListCallback callback) {
+    public static void getProgram(final ListByteCallback callback) {
         readBuffer.clear();
         getProgramSize(new IntCallback() {
             @Override
@@ -817,16 +1007,20 @@ class ChargerModel {
                     byte addrHigh = (byte)((fullAddr & ((byte)0xFF << 8)) >> 8);
                     byte addrLow = (byte)(fullAddr & (byte)0xFF);
 
-                    byte[] msgProgramBytes = new byte[] {
+                    byte[] msgProgramBytes_a = new byte[] {
                             c_cmd_ee_addr_high | writeReg,
                             addrHigh,
                             c_cmd_ee_addr_low | writeReg,
                             addrLow,
+                    };
+
+                    byte[] msgProgramBytes_b = new byte[] {
                             c_cmd_ee_data_high | readReg,
                             c_cmd_ee_data_low | readReg
                     };
 
-                    WaitForResponse(msgProgramBytes, 2, new Callback() {
+                    QueueQuery(msgProgramBytes_a);
+                    QueueQuery(msgProgramBytes_b, 2, new Callback() {
                         @Override
                         public void response(byte[] msg) {
                             program.add(msg[0]);
@@ -844,69 +1038,89 @@ class ChargerModel {
     }
 
     public static void writeProgramName(byte[] name) {
-        byte[] msg_1_2 = new byte[] {
+        byte[] msg_1_2a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 name[0],
                 c_cmd_ee_data_low | writeReg,
                 name[1],
+        };
+
+        byte[] msg_1_2b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_program_name_1_2
         };
 
-        byte[] msg_3_4 = new byte[] {
+        byte[] msg_3_4a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 name[2],
                 c_cmd_ee_data_low | writeReg,
                 name[3],
+        };
+
+        byte[] msg_3_4b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_program_name_3_4
         };
 
-        byte[] msg_5_6 = new byte[] {
+        byte[] msg_5_6a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 name[4],
                 c_cmd_ee_data_low | writeReg,
                 name[5],
+        };
+
+        byte[] msg_5_6b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_program_name_5_6
         };
 
-        byte[] msg_7_8 = new byte[] {
+        byte[] msg_7_8a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 name[6],
                 c_cmd_ee_data_low | writeReg,
                 name[7],
+        };
+
+        byte[] msg_7_8b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_program_name_7_8
         };
 
-        SendQuery(msg_1_2);
-        SendQuery(msg_3_4);
-        SendQuery(msg_5_6);
-        SendQuery(msg_7_8);
+        QueueQuery(msg_1_2a);
+        QueueQuery(msg_1_2b);
+        QueueQuery(msg_3_4a);
+        QueueQuery(msg_3_4b);
+        QueueQuery(msg_5_6a);
+        QueueQuery(msg_5_6b);
+        QueueQuery(msg_7_8a);
+        QueueQuery(msg_7_8b);
     }
 
     public static void writeProgramSizeInWords(byte[] size) {
-        byte[] msg = new byte[] {
+        byte[] msg_a = new byte[] {
                 c_cmd_ee_data_high | writeReg,
                 size[0],
                 c_cmd_ee_data_low | writeReg,
                 size[1],
+        };
+
+        byte[] msg_b = new byte[] {
                 c_cmd_ee_addr_high | writeReg,
                 0x00,
                 c_cmd_ee_addr_low | writeReg | writeEEprom,
                 ee_program_size
         };
 
-        SendQuery(msg);
+        QueueQuery(msg_a);
+        QueueQuery(msg_b);
     }
 
     public static void writeProgram(byte[] program, IntCallback progressCallback) {
@@ -915,18 +1129,22 @@ class ChargerModel {
             byte addrHigh = (byte)((fullAddr & 0x0000FF00) >> 8);
             byte addrLow = (byte)(fullAddr & 0x000000FF);
 
-            byte[] msg = new byte[] {
+            byte[] msg_a = new byte[] {
                     c_cmd_ee_data_high | writeReg,
                     program[i],
                     c_cmd_ee_data_low | writeReg,
                     program[i + 1],
+            };
+
+            byte[] msg_b = new byte[] {
                     c_cmd_ee_addr_high | writeReg,
                     addrHigh,
                     c_cmd_ee_addr_low | writeReg | writeEEprom,
                     addrLow
             };
 
-            SendQuery(msg);
+            QueueQuery(msg_a);
+            QueueQuery(msg_b);
 
             progressCallback.response(program[i]);
             progressCallback.response(program[i + 1]);
@@ -949,8 +1167,26 @@ class ChargerModel {
                     0x48
             };
 
-            SendQuery(msg_1);
-            SendQuery(msg_2);
+            QueueQuery(msg_1);
+            QueueQuery(msg_2);
         }
+    }
+
+    public static void enterProgMode() {
+        byte[] msg = new byte[] {
+                m_gbc_operation_mode | writeReg,
+                0x20
+        };
+
+        QueueQuery(msg, 0, null);
+    }
+
+    public static void enterNormalMode() {
+        byte[] msg = new byte[] {
+                m_gbc_operation_mode | writeReg,
+                -0x80
+        };
+
+        QueueQuery(msg, 0, null);
     }
 }

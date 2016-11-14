@@ -44,4 +44,6 @@
 
     <!-- Progress Dialog -->
     <string name="progressDialog_Headline">Please wait</string>
+    <string name="progressDialog_Log">Log</string>
+    <string name="progressDialog_LogSize">Size:</string>
 </resources>

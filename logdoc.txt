@@ -1,0 +1,32 @@
+Documentation of the log file
+
+Model: GBC07
+WORD size: 2 bytes
+
+Terms:
+	- Log file: The log file is the entire size of the EEprom - program_start - program_size, used to contain all logs.
+	- Log: Each individual log is contained within the log file, and consists of the length of the log as well as each data point.
+	- Data point: A vector containing TIME, STEP, VOLTAGE, CURRENT, and TEMP.
+
+The log file begins with two WORDs, followed by each individual log. The first WORD is always 0x1234, this indicates the beginning of the log file.
+The second WORD is an offset from the address of the first WORD (0x1234), which points to the address of the size of the oldest log.
+
+A log begins with a WORD describing the size of the log in WORDs. Following this, the log is split into data points.
+Each data point consists of three WORDs.
+
+WORD 0: 9 lowest bits contains VOLTAGE in x100mV. The highest 7 bits contains TEMP.
+example:
+	WORD: 		3921
+	VOLTAGE	=	3921 & 0x01FF						gives 0x121 == 289 (* 100mV)
+	TEMP	=	3921 >> 9							gives 0x1C == 28
+
+WORD 1: The lowest byte contains CURRENT in x100mA. The highest byte contains STEP.
+example:
+	WORD: 		0120
+	CURRENT	=	0120 & 0xFF 						gives 0x20 == 32 (* 100mA)
+	STEP	=	0120 >> 8							gives 0x01 == 1
+
+WORD 2: Contains TIME
+example:
+	WORD: 		008E
+	TIME	=	008E
