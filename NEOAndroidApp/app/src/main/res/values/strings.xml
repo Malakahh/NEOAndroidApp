@@ -16,9 +16,6 @@
     <string name="bt_connectingSpinnerHeadline">Please wait</string>
     <string name="bt_connectingSpinnerMessage">Connecting to NEO charger</string>
 
-    <!-- activity main -->
-    <string name="main_ProgramName">Charging Program:</string>
-
     <!-- activity service menu -->
     <string name="service_Headline">Service Menu</string>
     <string name="service_errorHeadline">Error status:</string>
@@ -29,13 +26,9 @@
     <string name="service_voltage">Voltage:</string>
     <string name="service_Current">Current:</string>
     <string name="service_ProgramStep">Step:</string>
-    <string name="service_LogCountersHeadline">Log Counters</string>
-    <string name="service_LogCounters_Charges">Charges:</string>
-    <string name="service_LogCounters_Errors">Errors:</string>
-    <string name="service_LogCounters_DeptDischarges">Deep:</string>
-    <string name="service_BtnResetCounters">Reset Counters</string>
     <string name="service_BtnReadLog">Read Log</string>
-    <string name="service_BtnWriteProgram">Write Program</string>
+    <string name="service_BtnProgram">Program</string>
+    <string name="service_BtnLogCounters">Log Counters</string>
 
     <!-- password dialog -->
     <string name="passwordDialog_Headline">Authorization required</string>
@@ -46,4 +39,21 @@
     <string name="progressDialog_Headline">Please wait</string>
     <string name="progressDialog_Log">Log</string>
     <string name="progressDialog_LogSize">Size:</string>
+
+    <!-- Log Counters Dialog -->
+    <string name="logCountersDialog_BtnResetCounters">Reset Counters</string>
+    <string name="logCountersDialog_LogCountersHeadline">Log Counters</string>
+    <string name="logCountersDialog_LogCounters_Charges">Charges:</string>
+    <string name="logCountersDialog_LogCounters_Errors">Errors:</string>
+    <string name="logCountersDialog_LogCounters_DeptDischarges">Deep:</string>
+
+    <!-- Program Dialog -->
+    <string name="programDialog_ProgramName">Charging Program:</string>
+    <string name="programDialog_BtnProgramWrite">Write Program</string>
+
+    <!-- Info Dialog -->
+    <string name="infoDialog_Headline">Dealership info</string>
+    <string name="infoDialog_NameHint">Enter dealership name</string>
+    <string name="infoDialog_PhoneHint">Enter dealership phone number</string>
+    <string name="infoDialog_WebsiteHint">Enter dealership website URL</string>
 </resources>

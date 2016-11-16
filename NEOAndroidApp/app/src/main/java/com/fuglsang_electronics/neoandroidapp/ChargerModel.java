@@ -101,7 +101,7 @@ class ChargerModel {
     private static final LinkedBlockingQueue<CallbackItem> callbacks = new LinkedBlockingQueue<>();
 
     private static Timer mTimeoutResponseTimer = new Timer();
-    private static final int mTimeout = 4000;
+    private static final int mTimeout = 2000;
     private static boolean mRunning = false;
 
     static void collectCharacteristics(BluetoothGatt gatt) {
@@ -267,11 +267,6 @@ class ChargerModel {
 
     private static void PostResponse() {
         Log.w("BUFFER", "readBuffer size: " + readBuffer.size());
-//        Byte[] b = new Byte[readBuffer.size()];
-//        readBuffer.toArray(b);
-//        for (int i = 0; i < b.length; i++) {
-//            Log.w("BUFFER", String.format("%02X", (int)b[i] & 0xFF));
-//        }
 
         if (mRunning && !callbacks.isEmpty() && readBuffer.size() >= callbacks.peek().mBytesToRead) {
             mTimeoutResponseTimer.cancel();
@@ -311,8 +306,6 @@ class ChargerModel {
     }
 
     private static void NextCommand() {
-        Log.w(TAG, "NextCommand");
-
         if (callbacks.isEmpty()) {
             Log.w(TAG, "callbacks is empty");
         }
@@ -327,8 +320,6 @@ class ChargerModel {
                 ChargerModel.writeCharacteristic(callbacks.peek().mQuery);
 
                 StartTimeoutTimer();
-
-                Log.w(TAG, "Waiting for response");
             }
         }
     }
@@ -926,70 +917,6 @@ class ChargerModel {
                 }
             });
         }
-
-
-
-
-//        final ValContainer<Integer> programSize = new ValContainer<>();
-//
-//        enterProgMode();
-//
-//        getProgramSize(new IntCallback() {
-//            @Override
-//            public void response(int value) {
-//                programSize.setVal(value);
-//            }
-//        });
-//
-//        getLogSize(new IntCallback() {
-//            @Override
-//            public void response(final int logSize) {
-//                final List<Byte> log = new ArrayList<>();
-//
-//                Log.w("logsize", "logsize: " + logSize);
-//
-//                for (int i = ee_program_area + programSize.getVal(); i < logSize; i++) {
-//                    final int current = i;
-//
-//                    byte addrHigh = (byte)((i & ((byte)0xFF << 8)) >> 8);
-//                    byte addrLow = (byte)(i & (byte)0xFF);
-//
-//                    byte[] msgLogByte_a = new byte[] {
-//                            c_cmd_ee_addr_high | writeReg,
-//                            addrHigh,
-//                            c_cmd_ee_addr_low | writeReg,
-//                            addrLow,
-//                    };
-//
-//                    byte[] msgLogByte_b = new byte[] {
-//                            c_cmd_ee_data_high | readReg,
-//                            c_cmd_ee_data_low | readReg
-//                    };
-//
-//                    QueueQuery(msgLogByte_a);
-//                    QueueQuery(msgLogByte_b, 2, new Callback() {
-//                        @Override
-//                        public void response(byte[] msg) {
-//                            log.add(msg[0]);
-//                            log.add(msg[1]);
-//
-//                            Log.w("Hejsa", "current: " + current + " programSize: " + programSize.getVal() + " logSize: " + logSize);
-//
-//                            if (onByteReceivedCallback != null) {
-//                                onByteReceivedCallback.response(msg[0]);
-//                                onByteReceivedCallback.response(msg[1]);
-//                            }
-//
-//                            if (current == logSize - 1) {
-//                                Log.w(TAG, "LOG GOTTEN");
-//                                callback.response(log);
-//                                enterNormalMode();
-//                            }
-//                        }
-//                    });
-//                }
-//            }
-//        });
     }
 
     public static void getProgram(final ListByteCallback callback) {

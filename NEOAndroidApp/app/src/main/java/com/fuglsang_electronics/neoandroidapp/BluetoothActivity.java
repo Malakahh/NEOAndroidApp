@@ -12,6 +12,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.AdapterView;
+import android.widget.ImageButton;
 import android.widget.ListView;
 
 
@@ -65,6 +66,9 @@ public class BluetoothActivity extends AppCompatActivity {
                 mBluetoothListViewAdapter.notifyDataSetInvalidated();
             }
         });
+
+        ImageButton btnInfo = (ImageButton) findViewById(R.id.bluetooth_BtnInfo);
+        InfoBtnHelper.setOnClickListener(btnInfo, this);
     }
 
     @Override

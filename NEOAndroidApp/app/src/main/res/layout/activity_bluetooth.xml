@@ -1,15 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
     android:paddingBottom="@dimen/content_padding_bottom"
     android:paddingStart="@dimen/content_padding_left"
     android:paddingEnd="@dimen/content_padding_right"
     android:paddingTop="@dimen/content_padding_top"
     android:keepScreenOn="true"
     tools:context="com.fuglsang_electronics.neoandroidapp.BluetoothActivity">
-
+    <ImageButton
+        android:id="@+id/bluetooth_BtnInfo"
+        android:layout_width="@dimen/btnWidth"
+        android:layout_height="@dimen/btnHeight"
+        android:layout_gravity="center"
+        android:src="@drawable/info" />
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,16 +23,10 @@
         android:textStyle="bold"
         android:textSize="35sp"
         android:id="@+id/btHeadline"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
         android:textAlignment="center"/>
-
     <ListView
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/bluetooth_ListView"
-        android:layout_gravity="center"
-        android:layout_alignParentStart="true"
-        android:layout_below="@+id/btHeadline" />
-
-</RelativeLayout>
+        android:layout_gravity="center" />
+</LinearLayout>

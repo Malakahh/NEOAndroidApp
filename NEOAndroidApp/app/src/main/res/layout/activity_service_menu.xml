@@ -140,84 +140,6 @@
                     android:text=""/>
             </LinearLayout>
         </LinearLayout>
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textAlignment="center"
-            android:textSize="@dimen/menu_headline"
-            android:text="@string/service_LogCountersHeadline"/>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/content_spacing"
-            android:orientation="horizontal">
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:layout_weight="1">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_tableHeader"
-                    android:gravity="center"
-                    android:text="@string/service_LogCounters_Charges"
-                    android:id="@+id/textView" />
-
-                <TextView
-                    android:id="@+id/txtViewServiceLogCountersCharges"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_text"
-                    android:gravity="center"
-                    android:text=""/>
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:layout_weight="1">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_tableHeader"
-                    android:gravity="center"
-                    android:text="@string/service_LogCounters_Errors"/>
-                <TextView
-                    android:id="@+id/txtViewServiceLogCountersErrors"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_text"
-                    android:gravity="center"
-                    android:text=""/>
-            </LinearLayout>
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:layout_weight="1">
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_tableHeader"
-                    android:gravity="center"
-                    android:text="@string/service_LogCounters_DeptDischarges"/>
-                <TextView
-                    android:id="@+id/txtViewServiceLogCountersDepthDischarges"
-                    android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
-                    android:textSize="@dimen/content_text"
-                    android:gravity="center"
-                    android:text=""/>
-            </LinearLayout>
-        </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
@@ -228,12 +150,12 @@
                 android:layout_gravity="bottom"
                 android:orientation="horizontal">
                 <Button
-                    android:id="@+id/btnServiceResetCounters"
+                    android:id="@+id/btnServiceLogCounters"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:layout_gravity="bottom"
-                    android:text="@string/service_BtnResetCounters"/>
+                    android:text="@string/service_BtnLogCounters"/>
                 <Button
                     android:id="@+id/btnServiceReadLog"
                     android:layout_width="0dp"
@@ -242,12 +164,12 @@
                     android:layout_gravity="bottom"
                     android:text="@string/service_BtnReadLog"/>
                 <Button
-                    android:id="@+id/btnServiceWriteProgram"
+                    android:id="@+id/btnServiceProgram"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:layout_gravity="bottom"
-                    android:text="@string/service_BtnWriteProgram"/>
+                    android:text="@string/service_BtnProgram"/>
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

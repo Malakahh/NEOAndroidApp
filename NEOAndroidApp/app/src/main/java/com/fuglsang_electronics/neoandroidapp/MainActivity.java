@@ -1,5 +1,7 @@
 package com.fuglsang_electronics.neoandroidapp;
 
+import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.drawable.AnimationDrawable;
@@ -9,8 +11,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -26,8 +31,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView mImgViewLEDGreen;
     private ImageView mImgViewLEDYellow;
     private ImageView mImgViewLEDRed;
-    private TextView mTxtViewProgramName;
-    private TextView mTxtViewMainProgramStep;
 
     private final long mUpdateDelayMS = 10000;
     private Timer mTimer = new Timer();
@@ -110,8 +113,9 @@ public class MainActivity extends AppCompatActivity {
         mImgViewLEDGreen = (ImageView) findViewById(R.id.imgViewLEDGreen);
         mImgViewLEDYellow = (ImageView) findViewById(R.id.imgViewLEDYellow);
         mImgViewLEDRed = (ImageView) findViewById(R.id.imgViewLEDRed);
-        mTxtViewProgramName = (TextView) findViewById(R.id.txtViewProgrammeName);
-        mTxtViewMainProgramStep = (TextView) findViewById(R.id.txtViewMainProgramStep);
+
+        ImageButton btnInfo = (ImageButton) findViewById(R.id.main_BtnInfo);
+        InfoBtnHelper.setOnClickListener(btnInfo, this);
 
         if (!BluetoothController.mConnected) {
             Intent intent = new Intent(getBaseContext(), BluetoothActivity.class);
@@ -130,28 +134,13 @@ public class MainActivity extends AppCompatActivity {
 
         ChargerModel.clearBuffers();
 
-        ChargerModel.getProgrammeName(new ChargerModel.StringCallback() {
-            @Override
-            public void response(String programmeName) {
-                mTxtViewProgramName.setText(programmeName);
-            }
-        });
-
         mTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 updateLED();
-
-                ChargerModel.getChargeProgramStep(new ChargerModel.IntCallback() {
-                    @Override
-                    public void response(int value) {
-                        mTxtViewMainProgramStep.setText(Integer.toString(value));
-                    }
-                });
             }
         }, 0, mUpdateDelayMS);
     }
-
 
     private void updateLED()
     {

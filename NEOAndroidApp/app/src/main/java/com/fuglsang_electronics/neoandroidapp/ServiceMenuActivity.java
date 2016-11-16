@@ -1,10 +1,16 @@
 package com.fuglsang_electronics.neoandroidapp;
 
+import android.app.Activity;
+import android.app.Dialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -26,17 +32,22 @@ public class ServiceMenuActivity extends AppCompatActivity {
     private TextView txtViewLogCounterErrors;
     private TextView txtViewLogCounterDepthDischarges;
 
+    private TextView mTxtViewProgramName;
+
     private Button btnServiceResetCounters;
     private Button btnServiceReadLog;
-    private Button btnServiceWriteProgram;
+    private Button btnServiceProgram;
 
     private final long mUpdateVoltCurrStepDelay = 10000;
-    private Timer mTimer = new Timer();
+    private Timer mTimer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_service_menu);
+
+        final Context context = this;
+        final Activity activity = this;
 
         txtViewVoltage = (TextView)findViewById(R.id.txtViewServiceVoltage);
         txtViewCurrent = (TextView)findViewById(R.id.txtViewServiceCurrent);
@@ -44,19 +55,45 @@ public class ServiceMenuActivity extends AppCompatActivity {
 
         txtViewError = (TextView)findViewById(R.id.txtViewServiceError);
 
-        txtViewLogCounterCharges = (TextView)findViewById(R.id.txtViewServiceLogCountersCharges);
-        txtViewLogCounterErrors = (TextView)findViewById(R.id.txtViewServiceLogCountersErrors);
-        txtViewLogCounterDepthDischarges = (TextView)findViewById(R.id.txtViewServiceLogCountersDepthDischarges);
-
-        btnServiceResetCounters = (Button)findViewById(R.id.btnServiceResetCounters);
+        btnServiceResetCounters = (Button)findViewById(R.id.btnServiceLogCounters);
         btnServiceReadLog = (Button)findViewById(R.id.btnServiceReadLog);
-        btnServiceWriteProgram = (Button)findViewById(R.id.btnServiceWriteProgram);
+        btnServiceProgram = (Button)findViewById(R.id.btnServiceProgram);
 
         btnServiceResetCounters.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                ChargerModel.clearLogCounters();
+                stopDataPolling();
+                ChargerModel.enterProgMode();
+
+                Dialog dialog = new Dialog(context);
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                dialog.setContentView(R.layout.logcounters_dialog);
+                dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+
+                txtViewLogCounterCharges = (TextView) dialog.findViewById(R.id.txtViewLogCountersCharges);
+                txtViewLogCounterErrors = (TextView) dialog.findViewById(R.id.txtViewLogCountersErrors);
+                txtViewLogCounterDepthDischarges = (TextView) dialog.findViewById(R.id.txtViewLogCountersDepthDischarges);
+
                 getLogCounters();
+
+                dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        ChargerModel.enterNormalMode();
+                        startDataPolling();
+                    }
+                });
+
+                Button btnReset = (Button) dialog.findViewById(R.id.btnLogCountersReset);
+                btnReset.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        ChargerModel.clearLogCounters();
+                        getLogCounters();
+                    }
+                });
+
+                dialog.show();
             }
         });
 
@@ -78,23 +115,58 @@ public class ServiceMenuActivity extends AppCompatActivity {
             }
         });
 
-        btnServiceWriteProgram.setOnClickListener(new View.OnClickListener() {
+        btnServiceProgram.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                stopDataPolling();
+                ChargerModel.enterProgMode();
 
-                intent.putExtra("Mode", ProgressActivity.MODE_FROM_FILE);
+                Dialog dialog = new Dialog(context);
+                dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+                dialog.setContentView(R.layout.program_dialog);
+                dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
 
-                startActivity(intent);
-                overridePendingTransition(0, 0);
+                mTxtViewProgramName = (TextView) dialog.findViewById(R.id.txtViewProgramName);
 
-                mTimer.cancel();
-                finish();
+                getProgramName();
 
-//                ChargerModel.getProgram();
+                dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+                        ChargerModel.enterNormalMode();
+                        startDataPolling();
+                    }
+                });
+
+                Button btnWriteProgram = (Button) dialog.findViewById(R.id.btnProgramWrite);
+                btnWriteProgram.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        Intent intent = new Intent(getBaseContext(), ProgressActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+                        intent.putExtra("Mode", ProgressActivity.MODE_FROM_FILE);
+
+                        startActivity(intent);
+                        overridePendingTransition(0, 0);
+
+                        mTimer.cancel();
+                        activity.finish();
+                    }
+                });
+
+                dialog.show();
+            }
+        });
+    }
+
+    private void getProgramName() {
+        ChargerModel.getProgrammeName(new ChargerModel.StringCallback() {
+            @Override
+            public void response(String programmeName) {
+                mTxtViewProgramName.setText(programmeName);
             }
         });
     }
@@ -123,14 +195,8 @@ public class ServiceMenuActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-
-        ChargerModel.clearBuffers();
-
-        getLogCounters();
-
+    private void startDataPolling() {
+        mTimer = new Timer();
         mTimer.schedule(new TimerTask() {
             @Override
             public void run() {
@@ -138,7 +204,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
                     @Override
                     public void response(int value) {
                         double fValue = value / 1000f;
-                        txtViewVoltage.setText(String.format("%1$.3f" + getString(R.string.unitsVoltage), fValue));
+                        txtViewVoltage.setText(String.format("%1$.1f" + getString(R.string.unitsVoltage), fValue));
                     }
                 });
 
@@ -146,7 +212,7 @@ public class ServiceMenuActivity extends AppCompatActivity {
                     @Override
                     public void response(int value) {
                         double fValue = value / 1000f;
-                        txtViewCurrent.setText(String.format("%1$.3f" + getString(R.string.unitsCurrent), fValue));
+                        txtViewCurrent.setText(String.format("%1$.1f" + getString(R.string.unitsCurrent), fValue));
                     }
                 });
 
@@ -173,6 +239,20 @@ public class ServiceMenuActivity extends AppCompatActivity {
                 });
             }
         }, 0, mUpdateVoltCurrStepDelay);
+    }
+
+    private void stopDataPolling() {
+        mTimer.cancel();
+        ChargerModel.clearBuffers();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        ChargerModel.clearBuffers();
+
+        startDataPolling();
     }
 
     @Override
